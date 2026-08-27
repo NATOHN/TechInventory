@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import StatusBadge from '../../components/StatusBadge';
 
 export default function HomeTab() {
   return (
@@ -7,6 +8,9 @@ export default function HomeTab() {
       <Ionicons name='hardware-chip' size={64} color='#1E3A8A' />
       <Text style={styles.title}>Bienvenido a TechInventory</Text>
       <Text style={styles.desc}>Control de inventario, ubicacion y mantenimiento de equipos</Text>
+      <StatusBadge status="activo" />
+      <StatusBadge status="taller" />
+      <StatusBadge status="baja" />
     </View>
   );
 }
