@@ -3,6 +3,7 @@ import { View, Text,Image,StyleSheet,ScrollView } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import StatusBadge from "../../components/StatusBadge";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -25,28 +26,37 @@ const EquipmentDetailScreen = ({route}:Props) => {
 
     return(
         //Cambie el contenedor principal a ScrollView
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.screenTitle}>Detalle del equipo</Text>
-            <Image source={foto} style={styles.image}/>
-            <Text style={styles.title}>{`${marca} ${modelo}`}</Text>
-            <Text style={styles.info}>{`Código: ${codigo}`}</Text>
-            <Text style={styles.info}>{`Serie: ${serie}`}</Text>
-            <Text style={styles.info}>{`Sucursal: ${sucursal}`}</Text>
-            <Text style={styles.info}>{`Departamento: ${departamento}`}</Text>
-            <Text style={styles.info}>{`Asignado: ${empleadoAsignado || "Sin asignar"}`}</Text>
-            <StatusBadge status={status}/>
-            <View style={styles.qrPlaceholder}>
-                <Text style={styles.qrText}>Código QR</Text>
-                <Text style={styles.qrSubtext}>Disponible en una fase posterior</Text>
-            </View>
-        </ScrollView>
+        <SafeAreaView>
+            <ScrollView contentContainerStyle={styles.container}>
+                <Text style={styles.screenTitle}>Detalle del equipo</Text>
+                <Image source={foto} style={styles.image}/>
+                <Text style={styles.title}>{`${marca} ${modelo}`}</Text>
+                <Text style={styles.info}>{`Código: ${codigo}`}</Text>
+                <Text style={styles.info}>{`Serie: ${serie}`}</Text>
+                <Text style={styles.info}>{`Sucursal: ${sucursal}`}</Text>
+                <Text style={styles.info}>{`Departamento: ${departamento}`}</Text>
+                <Text style={styles.info}>{`Asignado: ${empleadoAsignado || "Sin asignar"}`}</Text>
+                <StatusBadge status={status}/>
+                <View style={styles.qrPlaceholder}>
+                    <Text style={styles.qrText}>Código QR</Text>
+                    <Text style={styles.qrSubtext}>Disponible en una fase posterior</Text>
+                </View>
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 
 const styles = StyleSheet.create({
+    safeArea: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+
     container: {
-        padding: 20,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 30,
     },
 
     screenTitle: {
