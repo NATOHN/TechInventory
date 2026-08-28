@@ -1,4 +1,4 @@
-import { View, Text, Image,StyleSheet} from "react-native";
+import { View, Text, Image, ImageSourcePropType,StyleSheet} from "react-native";
 import StatusBadge from "./StatusBadge";
 
 
@@ -11,13 +11,18 @@ type Props ={
     departamento: string;
     empleadoAsignado: string;
     status: 'activo' | 'taller' | 'baja';
+    foto: ImageSourcePropType;
 };
 
 
-const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleadoAsignado,status}: Props) => {
+const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleadoAsignado,status,foto}: Props) => {
 
     return(
         <View style={styles.card}>
+            <Image 
+                source={foto}
+                style={styles.image}
+            />
             <View style={styles.header}>
                 <Text style={styles.codigo}>{codigo}</Text>
                 <StatusBadge status={status}/>
@@ -33,6 +38,7 @@ const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleado
 
 const styles = StyleSheet.create({
     card:{
+        width:'100%',
         backgroundColor: '#fff',
         padding: 16,
         borderRadius: 12,
@@ -72,7 +78,15 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 8,
-    }
+    },
+
+    image: {
+        width: '100%',
+        height: 160,
+        borderRadius: 10,
+        marginBottom: 10,
+        resizeMode: 'contain',
+    },
 });
 
 export default EquipmentCard;

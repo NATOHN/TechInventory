@@ -9,14 +9,15 @@ export default function HomeTab() {
       <Text style={styles.title}>Bienvenido a TechInventory</Text>
       <Text style={styles.desc}>Control de inventario, ubicacion y mantenimiento de equipos</Text>
       <EquipmentCard
-          codigo="EQ-0001"
-          marca="Dell"
-          modelo="Inspiron 3530"
-          serie="ABC123456"
-          sucursal="Tegucigalpa"
-          departamento="Administración"
-          empleadoAsignado="Carlos López"
-          status="activo"
+        codigo="EQ-0001"
+        marca="Dell"
+        modelo="Inspiron 3530"
+        serie="ABC123456"
+        sucursal="Tegucigalpa"
+        departamento="Administración"
+        empleadoAsignado="Carlos López"
+        status="activo"
+        foto={require('../../img/dell.png')}
       />
     </View>
   );
