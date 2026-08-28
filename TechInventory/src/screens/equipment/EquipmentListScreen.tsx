@@ -26,7 +26,7 @@ const equipos = [
             departamento: "Contabilidad",
             empleadoAsignado: "Sin asignar",
             status: "taller" as const,
-            foto: require("../../img/dell.png"),
+            foto: require("../../img/hp-prodesk-400-g9.png"),
     },
 
         {
@@ -38,7 +38,7 @@ const equipos = [
             departamento: "Vetas",
             empleadoAsignado: "Josue Meza",
             status: "baja" as const,
-            foto: require("../../img/dell.png"),
+            foto: require("../../img/dell-5555.jpg"),
     }
 
 ];
@@ -70,6 +70,18 @@ const EquipmentListScreen = ({navigation}:Props) =>{
                     empleadoAsignado={equipo.empleadoAsignado}
                     status={equipo.status}
                     foto={equipo.foto}
+
+                    onPress={() => navigation.navigate("EquipmentDetail", {
+                        codigo: equipo.codigo,
+                        marca: equipo.marca,
+                        modelo: equipo.modelo,
+                        serie: equipo.serie,
+                        sucursal: equipo.sucursal,
+                        departamento: equipo.departamento,
+                        empleadoAsignado: equipo.empleadoAsignado,
+                        status: equipo.status,
+                        foto: equipo.foto,
+                    })}
                 />
             )})}
         </ScrollView>

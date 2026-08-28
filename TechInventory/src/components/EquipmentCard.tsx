@@ -1,7 +1,7 @@
-import { View, Text, Image, ImageSourcePropType,StyleSheet} from "react-native";
+import { View, Text, Image, ImageSourcePropType,StyleSheet,TouchableOpacity} from "react-native";
 import StatusBadge from "./StatusBadge";
 
-
+//Agregue la props onPress
 type Props ={
     codigo: string;
     marca: string;
@@ -12,13 +12,15 @@ type Props ={
     empleadoAsignado: string;
     status: 'activo' | 'taller' | 'baja';
     foto: ImageSourcePropType;
+    onPress: () => void;
 };
 
 
-const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleadoAsignado,status,foto}: Props) => {
+const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleadoAsignado,status,foto, onPress}: Props) => {
 
     return(
-        <View style={styles.card}>
+        //Cambie el View Exterio por TouchableOpacity para que la tarjeta pueda ser tocable 
+        <TouchableOpacity style={styles.card} onPress={onPress}>
             <Image 
                 source={foto}
                 style={styles.image}
@@ -31,7 +33,7 @@ const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleado
             <Text style={styles.info}>{`Serie: ${serie}`}</Text>
             <Text style={styles.info}>{`${sucursal} • ${departamento}`}</Text>
             <Text style={styles.info}>{`Asignado: ${empleadoAsignado}`}</Text>
-        </View>
+        </TouchableOpacity>
     );
 };
 
