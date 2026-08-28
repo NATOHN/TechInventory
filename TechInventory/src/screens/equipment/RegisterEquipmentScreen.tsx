@@ -1,8 +1,9 @@
-import { Text, View,Image,StyleSheet,Alert } from "react-native";
+import { Text, ScrollView,Image,StyleSheet,Alert } from "react-native";
 import { useState } from "react";
 import CustomInput from "../../components/CustomInput";
 import * as ImagePicker from 'expo-image-picker';
 import CustomButton from "../../components/CustomButton";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const RegisterEquipmentScreen = () => {
     //1. Creamos los estados
@@ -51,59 +52,80 @@ const RegisterEquipmentScreen = () => {
 
     //2. Hacemos uso de nustro componente reutilizable CustomInput
     return(
-        <View>
-            <Text>Registrara Equipos</Text>
-            <CustomInput
-                type="text"
-                placeholder="Marca"
-                value={marca}
-                onChange={setMarca}
-            />
-            <CustomInput
-                type="text"
-                placeholder="Modelo"
-                value={modelo}
-                onChange={setModelo}
-            />
-            <CustomInput
-                type="text"
-                placeholder="Serie"
-                value={serie}
-                onChange={setSerie}
-            />
-            <CustomInput
-                type="text"
-                placeholder="Sucursal"
-                value={sucursal}
-                onChange={setSucursal}
-            />
-            <CustomInput
-                type="text"
-                placeholder="Departamento"
-                value={departamento}
-                onChange={setDepartamento}
-            />
-            <CustomInput
-                type="text"
-                placeholder="Empleado asignado"
-                value={empleadoAsignado}
-                onChange={setEmpleadoAsignado}
-            />
-            <CustomButton
-                title="Seleccionar fotografía"
-                onPress={seleccionarImagen}
-                variant="secondary"
-            />
-            {foto && (<Image source={{uri: foto}} style={styles.previewImage}/>)}
-            <CustomButton
-                title="Guardar equipo"
-                onPress={guardarEquipo}
-            />
-        </View>
+        <SafeAreaView style= {styles.safeArea}>
+            <ScrollView style={styles.container}>
+                <Text style={styles.title}>Registrar Equipos</Text>
+                <CustomInput
+                    type="text"
+                    placeholder="Marca"
+                    value={marca}
+                    onChange={setMarca}
+                />
+                <CustomInput
+                    type="text"
+                    placeholder="Modelo"
+                    value={modelo}
+                    onChange={setModelo}
+                />
+                <CustomInput
+                    type="text"
+                    placeholder="Serie"
+                    value={serie}
+                    onChange={setSerie}
+                />
+                <CustomInput
+                    type="text"
+                    placeholder="Sucursal"
+                    value={sucursal}
+                    onChange={setSucursal}
+                />
+                <CustomInput
+                    type="text"
+                    placeholder="Departamento"
+                    value={departamento}
+                    onChange={setDepartamento}
+                />
+                <CustomInput
+                    type="text"
+                    placeholder="Empleado asignado"
+                    value={empleadoAsignado}
+                    onChange={setEmpleadoAsignado}
+                />
+                <CustomButton
+                    title="Seleccionar fotografía"
+                    onPress={seleccionarImagen}
+                    variant="secondary"
+                />
+                {foto && (<Image source={{uri: foto}} style={styles.previewImage}/>)}
+                <CustomButton
+                    title="Guardar equipo"
+                    onPress={guardarEquipo}
+                />
+            </ScrollView>
+        </SafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
+     safeArea: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+
+    container: {
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 30,
+    },
+
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#1E3A8A',
+        marginBottom: 24,
+        textAlign: 'center',
+    },
+
     previewImage: {
         width: '100%',
         height: 200,
@@ -111,6 +133,7 @@ const styles = StyleSheet.create({
         marginTop: 12,
         resizeMode: 'contain',
     },
+   
 })
 
 export default RegisterEquipmentScreen;
