@@ -1,5 +1,8 @@
 import { Text, ScrollView, StyleSheet} from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import EquipmentCard from "../../components/EquipmentCard";
+import CustomButton from "../../components/CustomButton";
+import { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 
 
 const equipos = [
@@ -40,12 +43,21 @@ const equipos = [
 
 ];
 
+type Props = NativeStackScreenProps<
+    EquipmentStackParamList,
+    "EquipmentList"
+>;
 
 
-const EquipmentListScreen = () =>{
+const EquipmentListScreen = ({navigation}:Props) =>{
     return(
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.title}>Equipos registrados</Text>
+            
+            <CustomButton 
+                title="Registrar equipo" 
+                onPress={() => navigation.navigate("RegisterEquipment")}
+            />
             {equipos.map((equipo) => {return(
                 <EquipmentCard
                     key={equipo.codigo}
