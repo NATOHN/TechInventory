@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import StatusBadge from '../../components/StatusBadge';
+import EquipmentCard from '../../components/EquipmentCard';
 
 export default function HomeTab() {
   return (
@@ -8,9 +8,16 @@ export default function HomeTab() {
       <Ionicons name='hardware-chip' size={64} color='#1E3A8A' />
       <Text style={styles.title}>Bienvenido a TechInventory</Text>
       <Text style={styles.desc}>Control de inventario, ubicacion y mantenimiento de equipos</Text>
-      <StatusBadge status="activo" />
-      <StatusBadge status="taller" />
-      <StatusBadge status="baja" />
+      <EquipmentCard
+          codigo="EQ-0001"
+          marca="Dell"
+          modelo="Inspiron 3530"
+          serie="ABC123456"
+          sucursal="Tegucigalpa"
+          departamento="Administración"
+          empleadoAsignado="Carlos López"
+          status="activo"
+      />
     </View>
   );
 }
