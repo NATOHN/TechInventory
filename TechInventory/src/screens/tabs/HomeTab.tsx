@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import EquipmentCard from '../../components/EquipmentCard';
+
 
 export default function HomeTab() {
   return (
