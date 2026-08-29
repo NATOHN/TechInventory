@@ -1,11 +1,21 @@
-import { Text, ScrollView,Image,StyleSheet,Alert } from "react-native";
+import { Text, ScrollView,Image,StyleSheet,Alert,TouchableOpacity } from "react-native";
 import { useState } from "react";
-import CustomInput from "../../components/CustomInput";
 import * as ImagePicker from 'expo-image-picker';
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
+
+import CustomInput from "../../components/CustomInput";
 import CustomButton from "../../components/CustomButton";
 import { SafeAreaView } from "react-native-safe-area-context";
+import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 
-const RegisterEquipmentScreen = () => {
+//Creacion de Props
+type Props = NativeStackScreenProps<
+    EquipmentStackParamList,
+    "RegisterEquipment"
+>;
+
+const RegisterEquipmentScreen = ({navigation}:Props) => {
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
     const [modelo, setModelo] = useState("");
@@ -54,6 +64,10 @@ const RegisterEquipmentScreen = () => {
     return(
         <SafeAreaView style= {styles.safeArea}>
             <ScrollView style={styles.container}>
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={22} color="#1E3A8A" />
+                    <Text style={styles.backText}>Regresar</Text>
+                </TouchableOpacity>
                 <Text style={styles.title}>Registrar Equipos</Text>
                 <CustomInput
                     type="text"
@@ -133,7 +147,20 @@ const styles = StyleSheet.create({
         marginTop: 12,
         resizeMode: 'contain',
     },
-   
+
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+
+    backText: {
+        marginLeft: 6,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1E3A8A',
+    },
+    
 })
 
 export default RegisterEquipmentScreen;

@@ -1,9 +1,10 @@
 
-import { View, Text,Image,StyleSheet,ScrollView } from "react-native";
+import { View, Text,Image,StyleSheet,ScrollView,TouchableOpacity } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import StatusBadge from "../../components/StatusBadge";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -11,7 +12,7 @@ type Props = NativeStackScreenProps<
 >;
 
 
-const EquipmentDetailScreen = ({route}:Props) => {
+const EquipmentDetailScreen = ({route, navigation}:Props) => {
     const {
         codigo,
         marca,
@@ -28,6 +29,10 @@ const EquipmentDetailScreen = ({route}:Props) => {
         //Cambie el contenedor principal a ScrollView
         <SafeAreaView>
             <ScrollView contentContainerStyle={styles.container}>
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={22} color="#1E3A8A" />
+                    <Text style={styles.backText}>Regresar</Text>
+                </TouchableOpacity>
                 <Text style={styles.screenTitle}>Detalle del equipo</Text>
                 <Image source={foto} style={styles.image}/>
                 <Text style={styles.title}>{`${marca} ${modelo}`}</Text>
@@ -106,6 +111,19 @@ const styles = StyleSheet.create({
     qrSubtext: {
         marginTop: 8,
         color: '#777',
+    },
+
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+
+    backText: {
+        marginLeft: 6,
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1E3A8A',
     },
 });
 
