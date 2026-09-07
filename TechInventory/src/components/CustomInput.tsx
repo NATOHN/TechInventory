@@ -9,6 +9,8 @@ import {
   KeyboardTypeOptions,
 } from 'react-native';
 
+import { useTheme } from '../context/ThemeContext';
+
 type Props = {
   type?: 'text' | 'email' | 'password' | 'phone';
   placeholder: string;
@@ -17,6 +19,9 @@ type Props = {
 };
 
 export default function CustomInput({ type = 'text', placeholder, value, onChange }: Props) {
+  //Obtenemos la paleta de colores actual desde ThemeContext.
+  const { colors } = useTheme();
+
   const [secure, setSecure] = useState(type === 'password');
   const isPassword = type === 'password';
 
@@ -41,19 +46,20 @@ export default function CustomInput({ type = 'text', placeholder, value, onChang
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.container, error ? styles.errorBorder : null]}>
-        {icon && <MaterialIcons name={icon as any} size={22} color='#555' />}
+      <View style={[styles.container, {backgroundColor: colors.surface, borderColor: colors.border,}, error ? styles.errorBorder : null,]}>
+        {icon && <MaterialIcons name={icon as any} size={22} color={colors.textSecondary} />}
         <TextInput
           placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
           value={value}
           onChangeText={onChange}
-          style={styles.input}
+          style={[styles.input, { color: colors.text }]}
           secureTextEntry={secure}
           keyboardType={keyboard}
         />
         {isPassword && (
           <TouchableOpacity onPress={() => setSecure(!secure)}>
-            <Ionicons name={secure ? 'eye' : 'eye-off'} size={22} />
+            <Ionicons name={secure ? 'eye' : 'eye-off'} size={22} color={colors.textSecondary} />
           </TouchableOpacity>
         )}
       </View>

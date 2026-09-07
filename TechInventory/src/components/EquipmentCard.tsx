@@ -1,6 +1,8 @@
 import { View, Text, Image, ImageSourcePropType,StyleSheet,TouchableOpacity} from "react-native";
 import StatusBadge from "./StatusBadge";
 
+import { useTheme } from "../context/ThemeContext";
+
 //Agregue la props onPress
 type Props ={
     codigo: string;
@@ -17,22 +19,24 @@ type Props ={
 
 
 const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleadoAsignado,status,foto, onPress}: Props) => {
+    //Obtenemos la paleta de colores actual desde ThemeContext.
+    const { colors } = useTheme();
 
     return(
         //Cambie el View Exterio por TouchableOpacity para que la tarjeta pueda ser tocable 
-        <TouchableOpacity style={styles.card} onPress={onPress}>
+        <TouchableOpacity style={[styles.card, {backgroundColor: colors.cardBackground, borderColor: colors.cardBorder,}]} onPress={onPress}>
             <Image 
                 source={foto}
                 style={styles.image}
             />
             <View style={styles.header}>
-                <Text style={styles.codigo}>{codigo}</Text>
+                <Text style={[styles.codigo, {color: colors.textSecondary}]}>{codigo}</Text>
                 <StatusBadge status={status}/>
             </View>
-            <Text style={styles.titulo}>{`${marca} ${modelo}`}</Text>
-            <Text style={styles.info}>{`Serie: ${serie}`}</Text>
-            <Text style={styles.info}>{`${sucursal} • ${departamento}`}</Text>
-            <Text style={styles.info}>{`Asignado: ${empleadoAsignado}`}</Text>
+            <Text style={[styles.titulo, { color: colors.primary }]}>{`${marca} ${modelo}`}</Text>
+            <Text style={[styles.info, { color: colors.textSecondary }]}>{`Serie: ${serie}`}</Text>
+            <Text style={[styles.info, { color: colors.textSecondary }]}>{`${sucursal} • ${departamento}`}</Text>
+            <Text style={[styles.info, { color: colors.textSecondary }]}>{`Asignado: ${empleadoAsignado}`}</Text>
         </TouchableOpacity>
     );
 };

@@ -8,6 +8,7 @@ import CustomInput from "../../components/CustomInput";
 import CustomButton from "../../components/CustomButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
+import { useTheme } from "../../context/ThemeContext";
 
 //Creacion de Props
 type Props = NativeStackScreenProps<
@@ -16,6 +17,8 @@ type Props = NativeStackScreenProps<
 >;
 
 const RegisterEquipmentScreen = ({navigation}:Props) => {
+    //Obtenemos la paleta de colores actual desde ThemeContext.
+    const { colors } = useTheme();
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
     const [modelo, setModelo] = useState("");
@@ -62,13 +65,13 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
 
     //2. Hacemos uso de nustro componente reutilizable CustomInput
     return(
-        <SafeAreaView style= {styles.safeArea}>
-            <ScrollView style={styles.container}>
+        <SafeAreaView style= {[styles.safeArea, { backgroundColor: colors.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={22} color="#1E3A8A" />
-                    <Text style={styles.backText}>Regresar</Text>
+                    <Ionicons name="arrow-back" size={22} color={colors.primary} />
+                    <Text style={[styles.backText, { color: colors.primary }]}>Regresar</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Registrar Equipos</Text>
+                <Text style={[styles.title, { color: colors.primary }]}>Registrar Equipos</Text>
                 <CustomInput
                     type="text"
                     placeholder="Marca"

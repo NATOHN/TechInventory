@@ -1,4 +1,5 @@
 import { Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme, ThemeColors } from '../context/ThemeContext';
 
 type Props = {
   title: string;
@@ -7,7 +8,12 @@ type Props = {
 };
 
 export default function CustomButton({ title, onPress, variant = 'primary' }: Props) {
-  const styles = getStyles(variant);
+  // Obtenemos la paleta de colores actual desde ThemeContext.
+  const { colors } = useTheme();
+
+  //Enviamos la variante del botón y los colores actuales
+  // a la función que construye los estilos.
+  const styles = getStyles(variant, colors);
 
   return (
     <TouchableOpacity style={styles.button} onPress={onPress}>
@@ -16,7 +22,9 @@ export default function CustomButton({ title, onPress, variant = 'primary' }: Pr
   );
 }
 
-const getStyles = (variant: 'primary' | 'secondary' | 'danger') =>
+//getStyles recibe la variante del botón y la paleta
+//correspondiente al tema actual.
+const getStyles = (variant: 'primary' | 'secondary' | 'danger', colors: ThemeColors) =>
   StyleSheet.create({
     button: {
       borderRadius: 8,
@@ -24,8 +32,19 @@ const getStyles = (variant: 'primary' | 'secondary' | 'danger') =>
       marginVertical: 8,
       alignItems: 'center',
       backgroundColor:
-        variant === 'primary' ? '#1E3A8A' :
-        variant === 'secondary' ? '#888888' : '#c0392b',
+        variant === 'primary' ? colors.primary:
+        variant === 'secondary' ? colors.surface : '#c0392b',
+      //Agregamos un borde al botón secundario para que
+      borderWidth: variant === 'secondary' ? 1 : 0,
+      borderColor: variant === 'secondary' ? colors.border : 'transparent',
     },
-    text: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+    text: { 
+      //El texto cambia según el tipo de botón.
+      color: 
+        variant === 'primary'? colors.background:
+        variant === 'secondary' ? colors.text : '#FFFFFF',
+      fontWeight: 'bold', 
+      fontSize: 16 
+    },
   });

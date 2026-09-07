@@ -4,6 +4,7 @@ import { RouteProp } from '@react-navigation/native';
 import HomeTab from '../screens/tabs/HomeTab';
 import ProfileTab from '../screens/tabs/ProfileTab';
 import EquipmentNavigator from './EquipmentNavigator';
+import { useTheme } from '../context/ThemeContext';
 
 export type TabsParamList = {
   Inicio: undefined;
@@ -16,12 +17,18 @@ const Tab = createBottomTabNavigator<TabsParamList>();
 type TabRouteProp = RouteProp<TabsParamList, keyof TabsParamList>;
 
 export default function TabsNavigator() {
+  //Obtenemos la paleta de colores actual desde ThemeContext.
+  const { colors } = useTheme();
   return (
     <Tab.Navigator
       screenOptions={({ route }: { route: TabRouteProp }) => ({
         headerShown: false,
-        tabBarActiveTintColor: '#1E3A8A',
-        tabBarInactiveTintColor: '#888',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+         tabBarStyle: {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+         },
         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
           if (route.name === 'Inicio') iconName = 'home';
