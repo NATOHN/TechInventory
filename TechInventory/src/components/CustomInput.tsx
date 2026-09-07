@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 type Props = {
   type?: 'text' | 'email' | 'password' | 'phone';
@@ -22,31 +23,34 @@ export default function CustomInput({ type = 'text', placeholder, value, onChang
   //Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
 
+  //Obtenemos la función t desde LanguageContext
+  const { t } = useLanguage();
+
   const [secure, setSecure] = useState(type === 'password');
   const isPassword = type === 'password';
 
   const icon: typeof MaterialIcons['name'] | undefined =
     type === 'email' ? 'alternate-email' :
-    type === 'password' ? 'lock' :
-    type === 'phone' ? 'phone-android' : undefined;
+      type === 'password' ? 'lock' :
+        type === 'phone' ? 'phone-android' : undefined;
 
   const keyboard: KeyboardTypeOptions =
     type === 'email' ? 'email-address' :
-    type === 'phone' ? 'phone-pad' : 'default';
+      type === 'phone' ? 'phone-pad' : 'default';
 
   const getError = () => {
     if (!value) return undefined;
-    if (type === 'email' && !value.includes('@')) return 'Correo invalido';
-    if (type === 'password' && value.length < 4) return 'Contrasena muy corta';
-    if (type === 'phone' && value.length < 8) return 'Numero de telefono invalido';
-    if (type === 'text' && value.trim().length === 0) return 'Este campo es obligatorio';
+    if (type === 'email' && !value.includes('@')) return t('invalidEmail');
+    if (type === 'password' && value.length < 4) return t('shortPassword');
+    if (type === 'phone' && value.length < 8) return t('invalidPhone');
+    if (type === 'text' && value.trim().length === 0) return t('requiredField');
   };
 
   const error = getError();
 
   return (
     <View style={styles.wrapper}>
-      <View style={[styles.container, {backgroundColor: colors.surface, borderColor: colors.border,}, error ? styles.errorBorder : null,]}>
+      <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border, }, error ? styles.errorBorder : null,]}>
         {icon && <MaterialIcons name={icon as any} size={22} color={colors.textSecondary} />}
         <TextInput
           placeholder={placeholder}

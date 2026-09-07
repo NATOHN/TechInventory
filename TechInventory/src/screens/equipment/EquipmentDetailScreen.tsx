@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -30,26 +31,34 @@ const EquipmentDetailScreen = ({route, navigation}:Props) => {
     //Obtenemos la paleta de colores actual desde ThemeContext.
     const { colors } = useTheme();
 
+    //Obtenemos la función t desde LanguageContext
+    const { t } = useLanguage();
+
     return(
         //Cambie el contenedor principal a ScrollView
         <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
             <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={22} color={colors.primary} />
-                    <Text style={[styles.backText, { color: colors.primary }]}>Regresar</Text>
+                    <Text style={[styles.backText, { color: colors.primary }]}>{t("backButton")}</Text>
                 </TouchableOpacity>
-                <Text style={[styles.screenTitle, { color: colors.primary }]}>Detalle del equipo</Text>
+                <Text style={[styles.screenTitle, { color: colors.primary }]}>{t("equipmentDetailTitle")}</Text>
                 <Image source={foto} style={styles.image}/>
                 <Text style={[styles.title, { color: colors.primary }]}>{`${marca} ${modelo}`}</Text>
-                <Text style={[styles.info, { color: colors.textSecondary }]}>{`Código: ${codigo}`}</Text>
-                <Text style={[styles.info, { color: colors.textSecondary }]}>{`Serie: ${serie}`}</Text>
-                <Text style={[styles.info, { color: colors.textSecondary }]}>{`Sucursal: ${sucursal}`}</Text>
-                <Text style={[styles.info, { color: colors.textSecondary }]}>{`Departamento: ${departamento}`}</Text>
-                <Text style={[styles.info, { color: colors.textSecondary }]}>{`Asignado: ${empleadoAsignado || "Sin asignar"}`}</Text>
+                <Text style={[styles.info, { color: colors.textSecondary }]}>{`${t("codeLabel")}: ${codigo}`}</Text>
+                <Text style={[styles.info, { color: colors.textSecondary }]}>{`${t("seriesLabel")}: ${serie}`}</Text>
+                <Text style={[styles.info, { color: colors.textSecondary }]}>{`${t("branchLabel")}: ${sucursal}`}</Text>
+                <Text style={[styles.info, { color: colors.textSecondary }]}>{`${t("departmentLabel")}: ${departamento}`}</Text>
+                <Text style={[styles.info, { color: colors.textSecondary }]}>
+                    {`${t("assignedLabel")}: ${!empleadoAsignado || empleadoAsignado === "Sin asignar"
+                        ? t("unassigned")
+                        : empleadoAsignado
+                        }`}
+                </Text>
                 <StatusBadge status={status}/>
                 <View style={[styles.qrPlaceholder, {borderColor: colors.border}]}>
-                    <Text style={[styles.qrText, { color: colors.primary }]}>Código QR</Text>
-                    <Text style={[styles.qrSubtext, { color: colors.textSecondary }]}>Disponible en una fase posterior</Text>
+                    <Text style={[styles.qrText, { color: colors.primary }]}>{t("qrCodeTitle")}</Text>
+                    <Text style={[styles.qrSubtext, { color: colors.textSecondary }]}>{t("qrComingSoon")}</Text>
                 </View>
             </ScrollView>
         </SafeAreaView>

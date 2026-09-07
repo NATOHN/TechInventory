@@ -44,7 +44,7 @@ export default function ProfileTab() {
       {/*Fila sencilla para seleccionar el idioma. Mostramos solamente las opciones ES y EN. */}
       <View style={styles.languageRow}>
 
-          <Text style={[styles.languageLabel, { color: colors.text }]}>Idioma</Text>
+          <Text style={[styles.languageLabel, { color: colors.text }]}>{t("languageLabel")}</Text>
 
           <View style={styles.languageOptions}>
               {/*Cambiamos la aplicación a español. */}

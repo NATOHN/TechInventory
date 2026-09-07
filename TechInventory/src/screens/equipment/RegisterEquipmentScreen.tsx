@@ -9,6 +9,7 @@ import CustomButton from "../../components/CustomButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 //Creacion de Props
 type Props = NativeStackScreenProps<
@@ -19,6 +20,9 @@ type Props = NativeStackScreenProps<
 const RegisterEquipmentScreen = ({navigation}:Props) => {
     //Obtenemos la paleta de colores actual desde ThemeContext.
     const { colors } = useTheme();
+
+    const { t } = useLanguage();
+
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
     const [modelo, setModelo] = useState("");
@@ -50,16 +54,19 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
         //Validamos que marca, modelo, serie no estaen vacios
         // Si uno de ellos esta vacio el registro se detiene
         if (!marca || !modelo || !serie || !sucursal || !departamento || !foto) {
+            //Si falta información mostramos una alerta
             Alert.alert(
-                "Campos incompletos",
-                "Complete todos los campos obligatorios y seleccione una fotografía."
+                t("incompleteFieldsTitle"),
+                t("incompleteFieldsMessage")
             );
             //este return hace que la funcion termine aqui
             return;
         }
+
+        //Si falta información mostramos una alerta
         Alert.alert(
-            "Datos validos",
-            "La información del equipo fue validada correctamente."
+            t("validDataTitle"),
+            t("validDataMessage")
         );
     };
 
@@ -69,53 +76,53 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
             <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={22} color={colors.primary} />
-                    <Text style={[styles.backText, { color: colors.primary }]}>Regresar</Text>
+                    <Text style={[styles.backText, { color: colors.primary }]}>{t("backButton")}</Text>
                 </TouchableOpacity>
-                <Text style={[styles.title, { color: colors.primary }]}>Registrar Equipos</Text>
+                <Text style={[styles.title, { color: colors.primary }]}>{t("registerEquipmentTitle")}</Text>
                 <CustomInput
                     type="text"
-                    placeholder="Marca"
+                    placeholder={t("brandPlaceholder")}
                     value={marca}
                     onChange={setMarca}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Modelo"
+                    placeholder={t("modelPlaceholder")}
                     value={modelo}
                     onChange={setModelo}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Serie"
+                    placeholder={t("serialPlaceholder")}
                     value={serie}
                     onChange={setSerie}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Sucursal"
+                    placeholder={t("branchPlaceholder")}
                     value={sucursal}
                     onChange={setSucursal}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Departamento"
+                    placeholder={t("departmentPlaceholder")}
                     value={departamento}
                     onChange={setDepartamento}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Empleado asignado"
+                    placeholder={t("assignedEmployeePlaceholder")}
                     value={empleadoAsignado}
                     onChange={setEmpleadoAsignado}
                 />
                 <CustomButton
-                    title="Seleccionar fotografía"
+                    title={t("selectPhotoButton")}
                     onPress={seleccionarImagen}
                     variant="secondary"
                 />
                 {foto && (<Image source={{uri: foto}} style={styles.previewImage}/>)}
                 <CustomButton
-                    title="Guardar equipo"
+                    title={t("saveEquipmentButton")}
                     onPress={guardarEquipo}
                 />
             </ScrollView>

@@ -1,10 +1,11 @@
-import { View, Text, Image, ImageSourcePropType,StyleSheet,TouchableOpacity} from "react-native";
+import { View, Text, Image, ImageSourcePropType, StyleSheet, TouchableOpacity } from "react-native";
 import StatusBadge from "./StatusBadge";
 
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 
 //Agregue la props onPress
-type Props ={
+type Props = {
     codigo: string;
     marca: string;
     modelo: string;
@@ -18,37 +19,46 @@ type Props ={
 };
 
 
-const EquipmentCard = ({codigo,marca,modelo,serie,sucursal,departamento,empleadoAsignado,status,foto, onPress}: Props) => {
+const EquipmentCard = ({ codigo, marca, modelo, serie, sucursal, departamento, empleadoAsignado, status, foto, onPress }: Props) => {
     //Obtenemos la paleta de colores actual desde ThemeContext.
     const { colors } = useTheme();
 
-    return(
+    //Obtenemos la función t desde LanguageContext
+    const { t } = useLanguage();
+
+    return (
         //Cambie el View Exterio por TouchableOpacity para que la tarjeta pueda ser tocable 
-        <TouchableOpacity style={[styles.card, {backgroundColor: colors.cardBackground, borderColor: colors.cardBorder,}]} onPress={onPress}>
-            <Image 
+        <TouchableOpacity style={[styles.card, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder, }]} onPress={onPress}>
+            <Image
                 source={foto}
                 style={styles.image}
             />
             <View style={styles.header}>
-                <Text style={[styles.codigo, {color: colors.textSecondary}]}>{codigo}</Text>
-                <StatusBadge status={status}/>
+                <Text style={[styles.codigo, { color: colors.textSecondary }]}>{codigo}</Text>
+                <StatusBadge status={status} />
             </View>
             <Text style={[styles.titulo, { color: colors.primary }]}>{`${marca} ${modelo}`}</Text>
-            <Text style={[styles.info, { color: colors.textSecondary }]}>{`Serie: ${serie}`}</Text>
+            <Text style={[styles.info, { color: colors.textSecondary }]}>{`${t("seriesLabel")}: ${serie}`}</Text>
             <Text style={[styles.info, { color: colors.textSecondary }]}>{`${sucursal} • ${departamento}`}</Text>
-            <Text style={[styles.info, { color: colors.textSecondary }]}>{`Asignado: ${empleadoAsignado}`}</Text>
+            <Text style={[styles.info, { color: colors.textSecondary }]}>
+                {`${t("assignedLabel")}:${
+                    empleadoAsignado === "Sin asignar"
+                        ? t("unassigned")
+                        : empleadoAsignado
+                    }`}
+            </Text>
         </TouchableOpacity>
     );
 };
 
 
 const styles = StyleSheet.create({
-    card:{
-        width:'100%',
+    card: {
+        width: '100%',
         backgroundColor: '#fff',
         padding: 16,
         borderRadius: 12,
-        marginVertical:8,
+        marginVertical: 8,
         borderWidth: 1,
         borderColor: '#e0e0e0',
         shadowColor: '#000',
@@ -62,24 +72,24 @@ const styles = StyleSheet.create({
     },
 
     codigo: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
     },
 
-    titulo:{
+    titulo: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#1E3A8A',
         marginBottom: 6,
     },
-    info:{
+    info: {
         fontSize: 14,
         color: '#555',
         marginBottom: 4,
     },
 
-    header:{
+    header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',

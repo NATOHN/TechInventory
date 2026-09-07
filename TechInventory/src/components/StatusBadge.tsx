@@ -1,5 +1,7 @@
 import { View, Text, StyleSheet} from "react-native";
 
+import { useLanguage } from "../context/LanguageContext";
+
 
 //Props de los estados que recibira el eequipo
 type Props = {
@@ -8,12 +10,20 @@ type Props = {
 
 //Paso la Prop a la funcion 
 const StatusBadge = ({status}:Props) => {
+    //1. Obtenemos la función t desde LanguageContext
+    const { t } = useLanguage();
+
+
     //Varible que controla el color de status
     const backgroundColor = status === 'activo' ? 'green' : status === 'taller' ? 'orange' : 'red';
 
+    // 2.Seleccionamos el texto traducido según
+    // el estado interno recibido por el componente.
+    const statusText = status === 'activo' ? t('statusActive') : status === 'taller' ? t('statusWorkshop') : t('statusInactive');
+
     return(
         <View style={[styles.badge, {backgroundColor}]}>
-            <Text style={styles.text}>{status}</Text>
+            <Text style={styles.text}>{statusText}</Text>
         </View>
     );
 };

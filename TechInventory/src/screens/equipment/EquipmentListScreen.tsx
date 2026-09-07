@@ -6,6 +6,7 @@ import CustomButton from "../../components/CustomButton";
 import { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 
 const equipos = [
@@ -55,13 +56,15 @@ type Props = NativeStackScreenProps<
 const EquipmentListScreen = ({navigation}:Props) =>{
     //Obtenemos la paleta de colores actual desde ThemeContext.
     const { colors } = useTheme();
+    //Obtenemos la función t desde LanguageContext
+    const { t } = useLanguage();
     return(
         <SafeAreaView style={[styles.safeArea,{ backgroundColor: colors.background }]}>
             <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
-                <Text style={[styles.title, { color: colors.primary }]}>Equipos registrados</Text>
+                <Text style={[styles.title, { color: colors.primary }]}>{t("equipmentListTitle")}</Text>
                 
                 <CustomButton 
-                    title="Registrar equipo" 
+                    title={t("registerEquipmentButton")}
                     onPress={() => navigation.navigate("RegisterEquipment")}
                 />
                 {equipos.map((equipo) => {return(
