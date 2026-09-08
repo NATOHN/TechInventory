@@ -2,14 +2,23 @@ import { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/StackNavigator';
+import { useLanguage } from '../context/LanguageContext';
+
+
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
+import { useTheme } from '../context/ThemeContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { colors } = useTheme();
+
+  // Obtenemos la función t desde LanguageContext.
+  // t permitirá solicitar cada texto traducido.
+  const { t } = useLanguage();
 
   const handleLogin = () => {
     if (email.includes('@') && password.length >= 4) {
@@ -18,12 +27,12 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>TechInventory</Text>
-      <Text style={styles.subtitle}>Inicia sesion para continuar</Text>
-      <CustomInput type='email' placeholder='Correo electronico' value={email} onChange={setEmail} />
-      <CustomInput type='password' placeholder='Contrasena' value={password} onChange={setPassword} />
-      <CustomButton title='Ingresar' onPress={handleLogin} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Text style={[styles.title, { color: colors.primary }]}>TechInventory</Text>
+      <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t("loginSubtitle")}</Text>
+      <CustomInput type='email' placeholder={t("emailPlaceholder")} value={email} onChange={setEmail} />
+      <CustomInput type='password' placeholder={t("passwordPlaceholder")} value={password} onChange={setPassword} />
+      <CustomButton title={t("loginButton")} onPress={handleLogin} />
     </View>
   );
 }
