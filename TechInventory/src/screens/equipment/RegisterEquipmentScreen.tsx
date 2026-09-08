@@ -10,6 +10,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
+import {useAppDispatch, useAppSelector} from "../../redux/hooks";
+import { agregarEquipo, Equipment } from "../../redux/equipmentSlice";
+
 
 //Creacion de Props
 type Props = NativeStackScreenProps<
@@ -23,6 +26,14 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
 
     const { t } = useLanguage();
 
+    // 3. Obtenemos la función dispatch. dispatch será la encargada de enviar acciones
+    // desde esta pantalla hacia Redux.
+    const dispatch = useAppDispatch();
+
+    //Obtenemos los equipos que actualmente están almacenados dentro de Redux.
+    const equipos = useAppSelector( (state) => state.equipment.equipments);
+
+
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
     const [modelo, setModelo] = useState("");
@@ -31,6 +42,32 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
     const [departamento, setDepartamento] = useState("");
     const [empleadoAsignado, setEmpleadoAsignado] = useState("");
     const [foto, setFoto] = useState<string | null>(null);
+
+    //Creamos una función para generar automáticamente el código correspondiente al próximo equipo.
+    const generarCodigoEquipo = () => {
+
+        //Tomamos la cantidad de equipos existentes y sumamos uno para obtener el siguiente número.
+        const siguienteNumero = equipos.length + 1;
+
+        // Convertimos el número a texto y agregamos ceros a la izquierda hasta completar 4 dígitos.
+        const numeroFormateado = String(siguienteNumero).padStart(4, '0');
+
+        //Construimos el código final del equipo.
+        return `EQ-${numeroFormateado}`;
+    };
+
+    //Creamos una función para limpiar todos los campos después de registrar correctamente un equipo.
+    const limpiarFormulario = () => {
+
+        // 10. Regresamos cada estado a su valor inicial.
+        setMarca("");
+        setModelo("");
+        setSerie("");
+        setSucursal("");
+        setDepartamento("");
+        setEmpleadoAsignado("");
+        setFoto(null);
+    };
 
     //3. Creamos la funcion y la hacemos async porque abrir la galeria y esperar 
     //que el usuario seleccione la imagen eso demora
@@ -63,10 +100,57 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
             return;
         }
 
+        // 9. Construimos el objeto que representa el nuevo equipo.
+        // Indicamos que debe cumplir exactamente con la estructura Equipment.
+        const nuevoEquipo: Equipment = {
+
+            // Generamos automáticamente el código del equipo.
+            codigo: generarCodigoEquipo(),
+
+            // Guardamos los datos ingresados por el usuario.
+            marca: marca,
+            modelo: modelo,
+            serie: serie,
+            sucursal: sucursal,
+            departamento: departamento,
+
+            // El empleado asignado es opcional.
+            // Si el usuario no escribe ninguno, guardamos "Sin asignar".
+            empleadoAsignado:
+                empleadoAsignado.trim() || "Sin asignar",
+
+            // Todo equipo recién registrado comienza
+            // inicialmente con estado activo.
+            status: "activo",
+
+            // ImagePicker guarda la fotografía como una URI.
+            // La convertimos al formato que utiliza Image de React Native.
+            foto: { uri: foto },
+        };
+
+
+        // Mostramos temporalmente el nuevo equipo en consola
+        // para comprobar que se está construyendo correctamente.
+        console.log("Nuevo equipo preparado:", nuevoEquipo);
+
+        // 16. Enviamos el nuevo equipo al Store de Redux, agregarEquipo es la acción creada dentro de equipmentSlice.
+        dispatch(
+            agregarEquipo(nuevoEquipo)
+        );
+
         //Si falta información mostramos una alerta
         Alert.alert(
             t("validDataTitle"),
-            t("validDataMessage")
+            t("validDataMessage"),
+            [
+            {
+                text: "OK",
+                onPress: () => {
+                    limpiarFormulario();
+                    navigation.goBack();
+                },
+            },
+            ]
         );
     };
 

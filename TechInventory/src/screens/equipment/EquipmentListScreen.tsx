@@ -7,45 +7,8 @@ import { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAppSelector } from "../../redux/hooks";
 
-
-const equipos = [
-    {
-        codigo: "EQ-0001",
-        marca: "Dell",
-        modelo: "Inspiron 3530",
-        serie: "ABC123456",
-        sucursal: "Tegucigalpa",
-        departamento: "Administración",
-        empleadoAsignado: "Carlos López",
-        status: "activo" as const,
-        foto: require("../../img/dell.png"),
-    },
-    {
-            codigo: "EQ-0002",
-            marca: "HP",
-            modelo: "ProDesk 400 G9",
-            serie: "N/A",
-            sucursal: "San Pedro Sula",
-            departamento: "Contabilidad",
-            empleadoAsignado: "Sin asignar",
-            status: "taller" as const,
-            foto: require("../../img/hp-prodesk-400-g9.png"),
-    },
-
-        {
-            codigo: "EQ-0003",
-            marca: "DELL",
-            modelo: "Inspiron 5555",
-            serie: "AB554FG",
-            sucursal: "San Pedro Sula",
-            departamento: "Vetas",
-            empleadoAsignado: "Josue Meza",
-            status: "baja" as const,
-            foto: require("../../img/dell-5555.jpg"),
-    }
-
-];
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -58,6 +21,13 @@ const EquipmentListScreen = ({navigation}:Props) =>{
     const { colors } = useTheme();
     //Obtenemos la función t desde LanguageContext
     const { t } = useLanguage();
+
+    // Obtenemos el arreglo de equipos almacenado en Redux, state representa todo el Store.
+    // equipment es nuestro Slice, equipments es el arreglo definido dentro del estado.
+    const equipos = useAppSelector(
+        (state) => state.equipment.equipments
+    );
+
     return(
         <SafeAreaView style={[styles.safeArea,{ backgroundColor: colors.background }]}>
             <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
