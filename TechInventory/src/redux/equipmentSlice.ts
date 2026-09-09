@@ -88,11 +88,16 @@ const equipmentSlice = createSlice({
     // 9. Aquí agregaremos las funciones que modificarán el estado de los equipos.
     reducers: {
         agregarEquipo: (state, action: PayloadAction<Equipment>) => {
-            // 11. action.payload contiene el equipo que fue enviado desde la aplicación.
+            // 10. action.payload contiene el equipo que fue enviado desde la aplicación.
             state.equipments.push(action.payload);
+        },
+
+        cargarEquipos: (state,  action: PayloadAction<Equipment[]>) => {
+            //11. Sustituimos los equipos actuales por los recuperados desde AsyncStorage.
+            state.equipments = action.payload;
         },
     },
 });
 
-export const { agregarEquipo } = equipmentSlice.actions;
+export const { agregarEquipo, cargarEquipos } = equipmentSlice.actions;
 export default equipmentSlice.reducer;
