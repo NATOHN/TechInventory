@@ -62,7 +62,7 @@ const initialState: EquipmentState = {
         // 14. Tercer equipo de prueba.
         {
             codigo: "EQ-0003",
-            marca: "DELL",
+            marca: "Dell",
             modelo: "Inspiron 5555",
             serie: "AB554FG",
             sucursal: "San Pedro Sula",
