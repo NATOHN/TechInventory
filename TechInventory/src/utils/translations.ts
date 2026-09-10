@@ -80,6 +80,9 @@ export const translations = {
         statusWorkshop: 'Taller',
         statusInactive: 'Baja',
 
+        // 20. Cantidad de resultados mostrados en el inventario.
+        resultsLabel: "Resultados",
+
        
     },
 
@@ -160,6 +163,10 @@ export const translations = {
         statusActive: 'Active',
         statusWorkshop: 'Workshop',
         statusInactive: 'Inactive',
+
+        // 20. Number of results shown in the inventory.
+        resultsLabel: "Results",
+
 
         
     },
