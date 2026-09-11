@@ -8,6 +8,11 @@ import CustomInput from "../../components/CustomInput";
 import CustomButton from "../../components/CustomButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
+import { useTheme } from "../../context/ThemeContext";
+import { useLanguage } from "../../context/LanguageContext";
+import {useAppDispatch, useAppSelector} from "../../redux/hooks";
+import { agregarEquipo, Equipment } from "../../redux/equipmentSlice";
+
 
 //Creacion de Props
 type Props = NativeStackScreenProps<
@@ -16,6 +21,19 @@ type Props = NativeStackScreenProps<
 >;
 
 const RegisterEquipmentScreen = ({navigation}:Props) => {
+    //Obtenemos la paleta de colores actual desde ThemeContext.
+    const { colors } = useTheme();
+
+    const { t } = useLanguage();
+
+    // 3. Obtenemos la función dispatch. dispatch será la encargada de enviar acciones
+    // desde esta pantalla hacia Redux.
+    const dispatch = useAppDispatch();
+
+    //Obtenemos los equipos que actualmente están almacenados dentro de Redux.
+    const equipos = useAppSelector( (state) => state.equipment.equipments);
+
+
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
     const [modelo, setModelo] = useState("");
@@ -24,6 +42,32 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
     const [departamento, setDepartamento] = useState("");
     const [empleadoAsignado, setEmpleadoAsignado] = useState("");
     const [foto, setFoto] = useState<string | null>(null);
+
+    //Creamos una función para generar automáticamente el código correspondiente al próximo equipo.
+    const generarCodigoEquipo = () => {
+
+        //Tomamos la cantidad de equipos existentes y sumamos uno para obtener el siguiente número.
+        const siguienteNumero = equipos.length + 1;
+
+        // Convertimos el número a texto y agregamos ceros a la izquierda hasta completar 4 dígitos.
+        const numeroFormateado = String(siguienteNumero).padStart(4, '0');
+
+        //Construimos el código final del equipo.
+        return `EQ-${numeroFormateado}`;
+    };
+
+    //Creamos una función para limpiar todos los campos después de registrar correctamente un equipo.
+    const limpiarFormulario = () => {
+
+        // 10. Regresamos cada estado a su valor inicial.
+        setMarca("");
+        setModelo("");
+        setSerie("");
+        setSucursal("");
+        setDepartamento("");
+        setEmpleadoAsignado("");
+        setFoto(null);
+    };
 
     //3. Creamos la funcion y la hacemos async porque abrir la galeria y esperar 
     //que el usuario seleccione la imagen eso demora
@@ -47,72 +91,122 @@ const RegisterEquipmentScreen = ({navigation}:Props) => {
         //Validamos que marca, modelo, serie no estaen vacios
         // Si uno de ellos esta vacio el registro se detiene
         if (!marca || !modelo || !serie || !sucursal || !departamento || !foto) {
+            //Si falta información mostramos una alerta
             Alert.alert(
-                "Campos incompletos",
-                "Complete todos los campos obligatorios y seleccione una fotografía."
+                t("incompleteFieldsTitle"),
+                t("incompleteFieldsMessage")
             );
             //este return hace que la funcion termine aqui
             return;
         }
+
+        // 9. Construimos el objeto que representa el nuevo equipo.
+        // Indicamos que debe cumplir exactamente con la estructura Equipment.
+        const nuevoEquipo: Equipment = {
+
+            // Generamos automáticamente el código del equipo.
+            codigo: generarCodigoEquipo(),
+
+            // Guardamos los datos ingresados por el usuario.
+            marca: marca,
+            modelo: modelo,
+            serie: serie,
+            sucursal: sucursal,
+            departamento: departamento,
+
+            // El empleado asignado es opcional.
+            // Si el usuario no escribe ninguno, guardamos "Sin asignar".
+            empleadoAsignado:
+                empleadoAsignado.trim() || "Sin asignar",
+
+            // Todo equipo recién registrado comienza
+            // inicialmente con estado activo.
+            status: "activo",
+
+            // ImagePicker guarda la fotografía como una URI.
+            // La convertimos al formato que utiliza Image de React Native.
+            foto: { uri: foto },
+        };
+
+
+        // Mostramos temporalmente el nuevo equipo en consola
+        // para comprobar que se está construyendo correctamente.
+        console.log("Nuevo equipo preparado:", nuevoEquipo);
+
+        // 16. Enviamos el nuevo equipo al Store de Redux, agregarEquipo es la acción creada dentro de equipmentSlice.
+        dispatch(
+            agregarEquipo(nuevoEquipo)
+        );
+
+        //Si falta información mostramos una alerta
         Alert.alert(
-            "Datos validos",
-            "La información del equipo fue validada correctamente."
+            t("validDataTitle"),
+            t("validDataMessage"),
+            [
+            {
+                text: "OK",
+                onPress: () => {
+                    limpiarFormulario();
+                    navigation.goBack();
+                },
+            },
+            ]
         );
     };
 
     //2. Hacemos uso de nustro componente reutilizable CustomInput
     return(
-        <SafeAreaView style= {styles.safeArea}>
-            <ScrollView style={styles.container}>
+        <SafeAreaView style= {[styles.safeArea, { backgroundColor: colors.background }]}>
+            <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-                    <Ionicons name="arrow-back" size={22} color="#1E3A8A" />
-                    <Text style={styles.backText}>Regresar</Text>
+                    <Ionicons name="arrow-back" size={22} color={colors.primary} />
+                    <Text style={[styles.backText, { color: colors.primary }]}>{t("backButton")}</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Registrar Equipos</Text>
+                <Text style={[styles.title, { color: colors.primary }]}>{t("registerEquipmentTitle")}</Text>
                 <CustomInput
                     type="text"
-                    placeholder="Marca"
+                    placeholder={t("brandPlaceholder")}
                     value={marca}
                     onChange={setMarca}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Modelo"
+                    placeholder={t("modelPlaceholder")}
                     value={modelo}
                     onChange={setModelo}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Serie"
+                    placeholder={t("serialPlaceholder")}
                     value={serie}
                     onChange={setSerie}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Sucursal"
+                    placeholder={t("branchPlaceholder")}
                     value={sucursal}
                     onChange={setSucursal}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Departamento"
+                    placeholder={t("departmentPlaceholder")}
                     value={departamento}
                     onChange={setDepartamento}
                 />
                 <CustomInput
                     type="text"
-                    placeholder="Empleado asignado"
+                    placeholder={t("assignedEmployeePlaceholder")}
                     value={empleadoAsignado}
                     onChange={setEmpleadoAsignado}
                 />
                 <CustomButton
-                    title="Seleccionar fotografía"
+                    title={t("selectPhotoButton")}
                     onPress={seleccionarImagen}
                     variant="secondary"
                 />
                 {foto && (<Image source={{uri: foto}} style={styles.previewImage}/>)}
                 <CustomButton
-                    title="Guardar equipo"
+                    title={t("saveEquipmentButton")}
                     onPress={guardarEquipo}
                 />
             </ScrollView>
