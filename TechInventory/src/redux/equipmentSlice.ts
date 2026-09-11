@@ -92,12 +92,26 @@ const equipmentSlice = createSlice({
             state.equipments.push(action.payload);
         },
 
-        cargarEquipos: (state,  action: PayloadAction<Equipment[]>) => {
+        // Reemplaza el arreglo completo con los equipos recuperados de AsyncStorage.
+        cargarEquipos: (state, action: PayloadAction<Equipment[]>) => {
             //11. Sustituimos los equipos actuales por los recuperados desde AsyncStorage.
             state.equipments = action.payload;
         },
+
+        // Permite actualizar la sucursal y el departamento de un equipo existente.
+        cambiarUbicacionEquipo: (state, action: PayloadAction<{ codigo: string; sucursal: string; departamento: string }>) => {
+            // Buscamos el equipo utilizando su código único.
+            const equipo = state.equipments.find((equipo) => equipo.codigo === action.payload.codigo);
+
+            // Si encontramos el equipo, actualizamos únicamente su ubicación.
+            if (equipo) {
+                equipo.sucursal = action.payload.sucursal;
+                equipo.departamento = action.payload.departamento;
+            }
+        },
+
     },
 });
 
-export const { agregarEquipo, cargarEquipos } = equipmentSlice.actions;
+export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo} = equipmentSlice.actions;
 export default equipmentSlice.reducer;

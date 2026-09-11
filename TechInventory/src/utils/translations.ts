@@ -59,7 +59,7 @@ export const translations = {
         validDataTitle: 'Datos válidos',
         validDataMessage:
             'La información del equipo fue validada correctamente.',
-        
+
         // 16. Traducciones utilizadas en las pestañas
         // principales de navegación.
         homeTab: 'Inicio',
@@ -83,7 +83,41 @@ export const translations = {
         // 20. Cantidad de resultados mostrados en el inventario.
         resultsLabel: "Resultados",
 
-       
+        // 21. Título de la sección con los datos generales del equipo.
+        equipmentInformationTitle: "Información del equipo",
+
+        // 22. Textos utilizados en el buscador y filtros avanzados.
+        equipmentSearchPlaceholder: "Buscar equipos...",
+        advancedFiltersTitle: "Filtros avanzados",
+        advancedFiltersDescription: "Filtra los equipos por sucursal, departamento o marca.",
+        branchFilterTitle: "Sucursal",
+        departmentFilterTitle: "Departamento",
+        brandFilterTitle: "Marca",
+        allFeminine: "Todas",
+        allMasculine: "Todos",
+        clearFiltersButton: "Limpiar filtros",
+
+        //23. Textos utilizados en las acciones disponibles desde el detalle del equipo.
+        quickActionsTitle: "Acciones rápidas",
+        maintenanceAction: "Mantenimiento",
+        historyAction: "Historial",
+        changeLocationAction: "Cambiar ubicación",
+        qrAction: "Código QR",
+
+        //24. Textos utilizados al cambiar la ubicación de un equipo.
+        currentLocationLabel: "Ubicación actual",
+        newBranchLabel: "Nueva sucursal",
+
+        //25. Texto utilizado para seleccionar el nuevo departamento.
+        newDepartmentLabel: "Nuevo departamento",
+
+        //26.Textos utilizados al guardar una nueva ubicación.
+        saveLocationButton: "Guardar ubicación",
+        selectDepartmentMessage: "Seleccione un departamento antes de guardar.",
+        locationUpdatedTitle: "Ubicación actualizada",
+        locationUpdatedMessage: "La ubicación del equipo se actualizó correctamente.",
+
+
     },
 
 
@@ -144,7 +178,7 @@ export const translations = {
         validDataTitle: 'Valid data',
         validDataMessage:
             'The equipment information was validated successfully.',
-        
+
         // 16. Traducciones utilizadas en las pestañas
         // principales de navegación.
         homeTab: 'Home',
@@ -167,7 +201,40 @@ export const translations = {
         // 20. Number of results shown in the inventory.
         resultsLabel: "Results",
 
+        // 21. Title for the section containing the general equipment information.
+        equipmentInformationTitle: "Equipment information",
 
-        
+        // 22. Texts used in the search bar and advanced filters.
+        equipmentSearchPlaceholder: "Search equipment...",
+        advancedFiltersTitle: "Advanced filters",
+        advancedFiltersDescription: "Filter equipment by branch, department or brand.",
+        branchFilterTitle: "Branch",
+        departmentFilterTitle: "Department",
+        brandFilterTitle: "Brand",
+        allFeminine: "All",
+        allMasculine: "All",
+        clearFiltersButton: "Clear filters",
+
+        //23. Texts used in the actions available from the equipment detail.
+        quickActionsTitle: "Quick actions",
+        maintenanceAction: "Maintenance",
+        historyAction: "History",
+        changeLocationAction: "Change location",
+        qrAction: "QR Code",
+
+        //24.Texts used when changing an equipment location.
+        currentLocationLabel: "Current location",
+        newBranchLabel: "New branch",
+
+        //25. Text used when selecting the new department.
+        newDepartmentLabel: "New department",
+
+        // 26. Texts used when saving a new location.
+        saveLocationButton: "Save location",
+        selectDepartmentMessage: "Select a department before saving.",
+        locationUpdatedTitle: "Location updated",
+        locationUpdatedMessage: "The equipment location was updated successfully.",
+
+
     },
 };

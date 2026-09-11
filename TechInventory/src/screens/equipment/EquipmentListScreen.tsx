@@ -136,7 +136,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
 
                             {/* Campo donde el usuario escribe */}
                             <TextInput style={[styles.searchInput, { color: colors.text }]}
-                                placeholder="Buscar equipos..."
+                                placeholder={t("equipmentSearchPlaceholder")}
                                 placeholderTextColor={colors.textSecondary}
                                 value={searchText}
                                 onChangeText={setSearchText}
@@ -265,16 +265,16 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                     <View style={styles.modalOverlay}>
                         <View style={[styles.modalContent, { backgroundColor: colors.cardBackground }]}>
                             <View style={styles.modalHeader}>
-                                <Text style={[styles.modalTitle, { color: colors.text }]}>Filtros avanzados</Text>
+                                <Text style={[styles.modalTitle, { color: colors.text }]}>{t("advancedFiltersTitle")}</Text>
                                 <TouchableOpacity onPress={() => setShowFilters(false)}>
                                     <Ionicons name="close" size={26} color={colors.textSecondary} />
                                 </TouchableOpacity>
                             </View>
                             <Text style={[styles.modalDescription, { color: colors.textSecondary }]}>
-                                Filtra los equipos por sucursal, departamento o marca.
+                                {t("advancedFiltersDescription")}
                             </Text>
 
-                            <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Sucursal</Text>
+                            <Text style={[styles.filterSectionTitle, { color: colors.text }]}>{t("branchFilterTitle")}</Text>
                             <View style={styles.optionsContainer}>
                                 <TouchableOpacity
                                     style={[
@@ -287,7 +287,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                     onPress={() => setSelectedBranch("todas")}
                                 >
                                     <Text style={{ color: selectedBranch === "todas" ? colors.background : colors.textSecondary }}>
-                                        Todas
+                                        {t("allFeminine")}
                                     </Text>
                                 </TouchableOpacity>
 
@@ -311,7 +311,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                             </View>
 
                             {/* Filtro avanzado por departamento. */}
-                            <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Departamento</Text>
+                            <Text style={[styles.filterSectionTitle, { color: colors.text }]}>{t("departmentFilterTitle")}</Text>
 
                             <View style={styles.optionsContainer}>
                                 {/* Opción para no aplicar ningún filtro de departamento. */}
@@ -322,7 +322,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                     }]}
                                     onPress={() => setSelectedDepartment("todos")}
                                 >
-                                    <Text style={{ color: selectedDepartment === "todos" ? colors.background : colors.textSecondary }}>Todos</Text>
+                                    <Text style={{ color: selectedDepartment === "todos" ? colors.background : colors.textSecondary }}>{t("allMasculine")}</Text>
                                 </TouchableOpacity>
 
                                 {/* Creamos una opción por cada departamento disponible. */}
@@ -343,7 +343,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                             </View>
 
                             {/* Filtro avanzado por marca. */}
-                            <Text style={[styles.filterSectionTitle, { color: colors.text }]}>Marca</Text>
+                            <Text style={[styles.filterSectionTitle, { color: colors.text }]}>{t("brandFilterTitle")}</Text>
 
                             <View style={styles.optionsContainer}>
                                 {/* Permite mostrar equipos de cualquier marca. */}
@@ -354,7 +354,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                     }]}
                                     onPress={() => setSelectedBrand("todas")}
                                 >
-                                    <Text style={{ color: selectedBrand === "todas" ? colors.background : colors.textSecondary }}>Todas</Text>
+                                    <Text style={{ color: selectedBrand === "todas" ? colors.background : colors.textSecondary }}>{t("allFeminine")}</Text>
                                 </TouchableOpacity>
 
                                 {/* Creamos una opción por cada marca disponible. */}
@@ -382,7 +382,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                 }}
                             >
                                 <Ionicons name="refresh-outline" size={18} color={colors.primary} />
-                                <Text style={[styles.clearFiltersText, { color: colors.primary }]}>Limpiar filtros</Text>
+                                <Text style={[styles.clearFiltersText, { color: colors.primary }]}>{t("clearFiltersButton")}</Text>
                             </TouchableOpacity>
 
                         </View>
