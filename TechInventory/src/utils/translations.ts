@@ -117,6 +117,17 @@ export const translations = {
         locationUpdatedTitle: "Ubicación actualizada",
         locationUpdatedMessage: "La ubicación del equipo se actualizó correctamente.",
 
+        //27. Textos relacionados con el código QR y su impresión
+        qrCode: "Código QR",
+        printQr: "Imprimir / Reimprimir QR",
+        qrPreview: "Vista previa de etiqueta",
+        qrPreviewDescription: "Esta etiqueta podrá imprimirse nuevamente cuando el código QR físico necesite ser reemplazado.",
+        cancel: "Cancelar",
+        print: "Imprimir",
+        printLabelTitle: "Imprimir etiqueta",
+        printLabelMessage: "Se preparará la etiqueta QR del equipo",
+        printLabelMessageEnd: "para impresión.",
+
 
     },
 
@@ -234,6 +245,17 @@ export const translations = {
         selectDepartmentMessage: "Select a department before saving.",
         locationUpdatedTitle: "Location updated",
         locationUpdatedMessage: "The equipment location was updated successfully.",
+
+        //27. Texts related to the QR code and its printing
+        qrCode: "QR Code",
+        printQr: "Print / Reprint QR",
+        qrPreview: "Label preview",
+        qrPreviewDescription: "This label can be printed again when the physical QR code needs to be replaced.",
+        cancel: "Cancel",
+        print: "Print",
+        printLabelTitle: "Print label",
+        printLabelMessage: "The QR label for equipment",
+        printLabelMessageEnd: "will be prepared for printing.",
 
 
     },

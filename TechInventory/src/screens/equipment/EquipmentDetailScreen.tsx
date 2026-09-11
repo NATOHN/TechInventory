@@ -61,6 +61,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Creamos una lista de sucursales sin valores repetidos.
     const sucursalesDisponibles = [...new Set(equipos.map((equipo) => equipo.sucursal))];
 
+
     // Obtenemos solamente los departamentos que existen
     // dentro de la sucursal seleccionada.
     const departamentosDisponibles = [...new Set(
@@ -69,6 +70,19 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
             .map((equipo) => equipo.departamento)
     )];
 
+    // Controla la apertura de la vista previa para imprimir o reimprimir el QR
+    const [printQrModalVisible, setPrintQrModalVisible] = useState(false);
+
+    // Prepara la impresión de la etiqueta QR del equipo.
+    // La conexión con la impresora térmica se agregará posteriormente
+    // cuando se defina el modelo y protocolo de comunicación.
+    const handlePrintQr = () => {
+        Alert.alert(
+            t("printLabelTitle"),
+            `${t("printLabelMessage")} ${equipo.codigo} ${t("printLabelMessageEnd")}`,
+            [{ text: "OK" }]
+        );
+    };
 
     return (
         //ScrollView
@@ -189,13 +203,22 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
 
                 {/* Código QR generado utilizando el código único del equipo */}
                 <View style={styles.qrContainer}>
-                    <Text style={[styles.qrTitle, { color: colors.text }]}>{t("qrCodeTitle")}</Text>
+                    <Text style={[styles.qrTitle, { color: colors.text }]}>{t("qrCode")}</Text>
                     {/* El QR guarda únicamente el código del equipo */}
                     <View style={styles.qrBox}>
                         <QRCode value={equipo.codigo} size={160} />
                     </View>
                     {/* Mostramos también el código para identificarlo visualmente */}
                     <Text style={[styles.qrCode, { color: colors.textSecondary }]}>{equipo.codigo}</Text>
+
+                    {/* Permite abrir la vista previa para imprimir o reimprimir el QR */}
+                    <TouchableOpacity
+                        style={[styles.printQrButton, { backgroundColor: colors.primary }]}
+                        onPress={() => setPrintQrModalVisible(true)}
+                    >
+                        <Ionicons name="print-outline" size={20} color="#FFFFFF" />
+                        <Text style={styles.printQrButtonText}>{t("printQr")}</Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
 
@@ -291,6 +314,66 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Modal con la vista previa de la etiqueta QR */}
+            <Modal
+                visible={printQrModalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setPrintQrModalVisible(false)}
+            >
+                <View style={styles.printModalOverlay}>
+                    <View style={[styles.printModalContent, { backgroundColor: colors.surface }]}>
+
+                        {/* Encabezado del modal */}
+                        <View style={styles.printModalHeader}>
+                            <Text style={[styles.printModalTitle, { color: colors.text }]}>
+                                {t("qrPreview")}
+                            </Text>
+
+                            <TouchableOpacity onPress={() => setPrintQrModalVisible(false)}>
+                                <Ionicons name="close" size={26} color={colors.text} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Simulación de la etiqueta que posteriormente se imprimirá */}
+                        <View style={styles.qrLabelPreview}>
+                            <Text style={styles.qrLabelBrand}>TECHINVENTORY</Text>
+
+                            <QRCode value={equipo.codigo} size={150} />
+
+                            <Text style={styles.qrLabelCode}>{equipo.codigo}</Text>
+                        </View>
+
+                        <Text style={[styles.printModalDescription, { color: colors.textSecondary }]}>
+                             {t("qrPreviewDescription")}
+                        </Text>
+
+                        {/* Acciones disponibles para la etiqueta QR */}
+                        <View style={styles.printModalActions}>
+                            {/* Cierra la vista previa sin realizar ninguna acción */}
+                            <TouchableOpacity
+                                style={[styles.previewActionButton, { borderColor: colors.border }]}
+                                onPress={() => setPrintQrModalVisible(false)}
+                            >
+                                <Text style={[styles.previewActionText, { color: colors.text }]}>{t("cancel")}</Text>
+                            </TouchableOpacity>
+
+                            {/* Inicia el proceso de impresión de la etiqueta */}
+                            <TouchableOpacity
+                                style={[styles.previewActionButton, { backgroundColor: colors.primary }]}
+                                onPress={handlePrintQr}
+                            >
+                                <Ionicons name="print-outline" size={19} color="#FFFFFF" />
+                                <Text style={styles.printActionText}>{t("print")}</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    </View>
+                </View>
+            </Modal>
+
+
         </SafeAreaView>
     );
 };
@@ -595,6 +678,132 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: "500",
     },
+
+    // Botón para imprimir o reimprimir la etiqueta QR
+    printQrButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 18,
+        borderRadius: 10,
+        marginTop: 4,
+    },
+
+    printQrButtonText: {
+        color: "#FFFFFF",
+        fontSize: 15,
+        fontWeight: "600",
+    },
+
+    // Fondo oscuro detrás del modal de impresión
+    printModalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+
+    // Contenedor principal del modal
+    printModalContent: {
+        width: "100%",
+        maxWidth: 380,
+        borderRadius: 16,
+        padding: 20,
+    },
+
+    // Encabezado del modal
+    printModalHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 20,
+    },
+
+    printModalTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+    },
+
+    // Vista previa de la etiqueta térmica
+    qrLabelPreview: {
+        alignSelf: "center",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        paddingVertical: 20,
+        paddingHorizontal: 24,
+        borderRadius: 4,
+        gap: 14,
+    },
+
+    // Nombre visible de la aplicación dentro de la etiqueta
+    qrLabelBrand: {
+        color: "#000000",
+        fontSize: 16,
+        fontWeight: "700",
+        letterSpacing: 1,
+    },
+
+    // Código identificador visible debajo del QR
+    qrLabelCode: {
+        color: "#000000",
+        fontSize: 18,
+        fontWeight: "700",
+    },
+
+    printModalDescription: {
+        textAlign: "center",
+        fontSize: 14,
+        lineHeight: 20,
+        marginTop: 18,
+    },
+
+    closePreviewButton: {
+        alignItems: "center",
+        paddingVertical: 12,
+        borderRadius: 10,
+        marginTop: 18,
+    },
+
+    closePreviewButtonText: {
+        color: "#FFFFFF",
+        fontSize: 15,
+        fontWeight: "600",
+    },
+
+    // Contenedor de las acciones del modal
+    printModalActions: {
+        flexDirection: "row",
+        gap: 10,
+        marginTop: 18,
+    },
+
+    // Estilo base para ambos botones
+    previewActionButton: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        paddingVertical: 12,
+        borderRadius: 10,
+        borderWidth: 1,
+    },
+
+    previewActionText: {
+        fontSize: 15,
+        fontWeight: "600",
+    },
+
+    printActionText: {
+        color: "#FFFFFF",
+        fontSize: 15,
+        fontWeight: "600",
+    },
+
+
 });
 
 export default EquipmentDetailScreen;
