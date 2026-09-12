@@ -128,6 +128,14 @@ export const translations = {
         printLabelMessage: "Se preparará la etiqueta QR del equipo",
         printLabelMessageEnd: "para impresión.",
 
+        //28. Textos de la pantalla de historial de equipos
+        equipmentHistoryTitle: "Historial del equipo",
+        registeredMovements: "Movimientos registrados:",
+        previousLocation: "Ubicación anterior",
+        newLocation: "Nueva ubicación",
+        noMovementsTitle: "Sin movimientos registrados",
+        noMovementsMessage: "Los cambios de ubicación realizados a este equipo aparecerán aquí.",
+
 
     },
 
@@ -256,6 +264,14 @@ export const translations = {
         printLabelTitle: "Print label",
         printLabelMessage: "The QR label for equipment",
         printLabelMessageEnd: "will be prepared for printing.",
+
+        //28. Equipment history screen texts
+        equipmentHistoryTitle: "Equipment history",
+        registeredMovements: "Registered movements:",
+        previousLocation: "Previous location",
+        newLocation: "New location",
+        noMovementsTitle: "No movements recorded",
+        noMovementsMessage: "Location changes made to this equipment will appear here.",
 
 
     },

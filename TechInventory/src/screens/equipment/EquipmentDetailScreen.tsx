@@ -165,9 +165,10 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                             <Text style={[styles.actionText, { color: colors.text }]}>{t("maintenanceAction")}</Text>
                         </TouchableOpacity>
 
+                        {/*Abre el historial correspondiente al equipo seleccionado.*/}
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
-                            onPress={() => console.log("Abrir historial")}
+                            onPress={() => navigation.navigate("EquipmentHistory",{codigo: equipo.codigo})}
                         >
                             <Ionicons name="time-outline" size={24} color={colors.primary} />
                             <Text style={[styles.actionText, { color: colors.text }]}>{t("historyAction")}</Text>
