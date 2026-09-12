@@ -27,14 +27,13 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     const { codigo } = route.params;
 
     // Buscamos en Redux el equipo que corresponde al código recibido.
-    const equipoRedux = useAppSelector(
-        (state) => state.equipment.equipments.find((equipo) => equipo.codigo === codigo)
-    );
+    const equipoRedux = useAppSelector((state) => state.equipment.equipments.find((equipo) => equipo.codigo === codigo));
 
-   
+
     // Si Redux todavía no encuentra el equipo, usamos temporalmente
     // los datos recibidos mediante la navegación.
     const equipo = equipoRedux ?? route.params;
+
 
     // Extraemos los datos que necesita la interfaz.
     const { marca, modelo, serie, sucursal, departamento, empleadoAsignado, status, foto } = equipo;
