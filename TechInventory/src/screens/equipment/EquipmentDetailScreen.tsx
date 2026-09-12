@@ -13,6 +13,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { cambiarUbicacionEquipo } from "../../redux/equipmentSlice";
+import { BRANCH_OPTIONS } from "../../data/equipmentCatalogs";
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -30,9 +31,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
         (state) => state.equipment.equipments.find((equipo) => equipo.codigo === codigo)
     );
 
-    // Obtenemos todos los equipos para conocer las sucursales existentes en el inventario.
-    const equipos = useAppSelector((state) => state.equipment.equipments);
-
+   
     // Si Redux todavía no encuentra el equipo, usamos temporalmente
     // los datos recibidos mediante la navegación.
     const equipo = equipoRedux ?? route.params;
@@ -58,17 +57,17 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Guarda temporalmente el nuevo departamento seleccionado por el usuario.
     const [selectedNewDepartment, setSelectedNewDepartment] = useState(departamento);
 
-    // Creamos una lista de sucursales sin valores repetidos.
-    const sucursalesDisponibles = [...new Set(equipos.map((equipo) => equipo.sucursal))];
+    // Obtenemos las sucursales desde el catálogo independiente.
+    const sucursalesDisponibles = BRANCH_OPTIONS.map((branch) => branch.name);
 
 
-    // Obtenemos solamente los departamentos que existen
-    // dentro de la sucursal seleccionada.
-    const departamentosDisponibles = [...new Set(
-        equipos
-            .filter((equipo) => equipo.sucursal === selectedNewBranch)
-            .map((equipo) => equipo.departamento)
-    )];
+    // Buscamos la sucursal seleccionada dentro del catálogo.
+    const selectedBranchOption = BRANCH_OPTIONS.find(
+        (branch) => branch.name === selectedNewBranch
+    );
+
+    // // Obtenemos los departamentos pertenecientes a la sucursal seleccionada.
+    const departamentosDisponibles = selectedBranchOption?.departments.map((department) => department.name) ?? [];
 
     // Controla la apertura de la vista previa para imprimir o reimprimir el QR
     const [printQrModalVisible, setPrintQrModalVisible] = useState(false);
@@ -346,7 +345,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                         </View>
 
                         <Text style={[styles.printModalDescription, { color: colors.textSecondary }]}>
-                             {t("qrPreviewDescription")}
+                            {t("qrPreviewDescription")}
                         </Text>
 
                         {/* Acciones disponibles para la etiqueta QR */}

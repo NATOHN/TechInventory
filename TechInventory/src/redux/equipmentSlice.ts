@@ -6,6 +6,15 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 // 2. Definimos los estados permitidos para un equipo.
 export type EquipmentStatus = | 'activo' | 'taller' | 'baja';
 
+// 12. Define cada movimiento de ubicación realizado sobre un equipo.
+export type EquipmentLocationHistory = {
+    sucursalAnterior: string;
+    departamentoAnterior: string;
+    sucursalNueva: string;
+    departamentoNuevo: string;
+    fecha: string;
+};
+
 
 // 3. Definimos la estructura que tendrá cada equipo
 // almacenado dentro de Redux.
@@ -19,6 +28,8 @@ export type Equipment = {
     empleadoAsignado: string;
     status: EquipmentStatus;
     foto: ImageSourcePropType;
+    // Guarda los cambios de ubicación realizados al equipo.
+    historialUbicaciones?: EquipmentLocationHistory[];
 };
 
 
@@ -105,6 +116,21 @@ const equipmentSlice = createSlice({
 
             // Si encontramos el equipo, actualizamos únicamente su ubicación.
             if (equipo) {
+                // Creamos el historial si el equipo todavía no posee movimientos anteriores.
+                if (!equipo.historialUbicaciones) {
+                    equipo.historialUbicaciones = [];
+                }
+
+                // Guardamos la ubicación actual antes de reemplazarla por la nueva.
+                equipo.historialUbicaciones.push({
+                    sucursalAnterior: equipo.sucursal,
+                    departamentoAnterior: equipo.departamento,
+                    sucursalNueva: action.payload.sucursal,
+                    departamentoNuevo: action.payload.departamento,
+                    fecha: new Date().toISOString(),
+                });
+
+                //Actualizamos la ubicación actual del equipo.
                 equipo.sucursal = action.payload.sucursal;
                 equipo.departamento = action.payload.departamento;
             }
@@ -113,5 +139,5 @@ const equipmentSlice = createSlice({
     },
 });
 
-export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo} = equipmentSlice.actions;
+export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo } = equipmentSlice.actions;
 export default equipmentSlice.reducer;
