@@ -136,8 +136,18 @@ const equipmentSlice = createSlice({
             }
         },
 
+        // Permite dar de baja un equipo sin eliminarlo del inventario.
+        darDeBajaEquipo: ( state, action: PayloadAction<{ codigo: string }>) => {
+            // Buscamos el equipo utilizando su código único.
+            const equipo = state.equipments.find((equipo) => equipo.codigo === action.payload.codigo);
+            // Si encontramos el equipo, cambiamos únicamente su estado.
+            if (equipo) {
+                equipo.status = "baja";
+            }
+        },
+
     },
 });
 
-export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo } = equipmentSlice.actions;
+export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo, darDeBajaEquipo} = equipmentSlice.actions;
 export default equipmentSlice.reducer;

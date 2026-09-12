@@ -164,7 +164,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                             onPress={() => setStatusFilter('todos')}
                         >
                             <Text style={[styles.filterText, { color: statusFilter === 'todos' ? colors.background : colors.textSecondary, }]}>
-                                {`Todos (${totalTodos})`}
+                                {t("allMasculine")} ({equipos.length})
                             </Text>
                         </TouchableOpacity>
 

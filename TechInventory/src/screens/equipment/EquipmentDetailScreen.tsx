@@ -12,8 +12,9 @@ import StatusBadge from "../../components/StatusBadge";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { cambiarUbicacionEquipo } from "../../redux/equipmentSlice";
+import { cambiarUbicacionEquipo, darDeBajaEquipo } from "../../redux/equipmentSlice";
 import { BRANCH_OPTIONS } from "../../data/equipmentCatalogs";
+
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -79,6 +80,40 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
             t("printLabelTitle"),
             `${t("printLabelMessage")} ${equipo.codigo} ${t("printLabelMessageEnd")}`,
             [{ text: "OK" }]
+        );
+    };
+
+    // Solicita confirmación antes de dar de baja un equipo.
+    // El equipo no se elimina, únicamente cambia su estado a "baja".
+    const handleDarDeBaja = () => {
+        Alert.alert(
+            t("decommissionTitle"),
+            `${t("decommissionMessageStart")} ${equipo.codigo}${t("decommissionMessageEnd")}`,
+            [
+                // Permite cancelar la operación sin realizar cambios.
+                {
+                    text: t("cancel"),
+                    style: "cancel",
+                },
+
+                // Confirma el cambio de estado del equipo.
+                {
+                    text: t("decommissionConfirm"),
+                    style: "destructive",
+                    onPress: () => {
+                        dispatch(
+                            darDeBajaEquipo({
+                                codigo: equipo.codigo
+                            })
+                        );
+
+                        Alert.alert(
+                            t("decommissionSuccessTitle"),
+                            `${t("decommissionSuccessMessageStart")} ${equipo.codigo} ${t("decommissionSuccessMessageEnd")}`
+                        );
+                    },
+                },
+            ]
         );
     };
 
@@ -168,7 +203,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                         {/*Abre el historial correspondiente al equipo seleccionado.*/}
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
-                            onPress={() => navigation.navigate("EquipmentHistory",{codigo: equipo.codigo})}
+                            onPress={() => navigation.navigate("EquipmentHistory", { codigo: equipo.codigo })}
                         >
                             <Ionicons name="time-outline" size={24} color={colors.primary} />
                             <Text style={[styles.actionText, { color: colors.text }]}>{t("historyAction")}</Text>
@@ -199,6 +234,25 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                         </TouchableOpacity>
                     </View>
                 </View>
+
+                {/* Acción administrativa para dar de baja el equipo. 
+                Solo se muestra mientras el equipo no tenga estado "baja". */}
+                {status !== "baja" && (
+                    <TouchableOpacity
+                        style={styles.decommissionButton}
+                        onPress={handleDarDeBaja}
+                    >
+                        <Ionicons
+                            name="warning-outline"
+                            size={21}
+                            color="#B91C1C"
+                        />
+
+                        <Text style={styles.decommissionButtonText}>
+                            {t("decommissionButton")}
+                        </Text>
+                    </TouchableOpacity>
+                )}
 
                 {/* Código QR generado utilizando el código único del equipo */}
                 <View style={styles.qrContainer}>
@@ -800,6 +854,26 @@ const styles = StyleSheet.create({
         color: "#FFFFFF",
         fontSize: 15,
         fontWeight: "600",
+    },
+
+    // Botón de acción sensible utilizado para dar de baja un equipo.
+    decommissionButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 13,
+        borderWidth: 1,
+        borderColor: "#B91C1C",
+        borderRadius: 12,
+        marginBottom: 24,
+    },
+
+    // Texto del botón de baja.
+    decommissionButtonText: {
+        color: "#B91C1C",
+        fontSize: 15,
+        fontWeight: "700",
+        marginLeft: 8,
     },
 
 

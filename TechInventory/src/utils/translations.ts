@@ -136,6 +136,16 @@ export const translations = {
         noMovementsTitle: "Sin movimientos registrados",
         noMovementsMessage: "Los cambios de ubicación realizados a este equipo aparecerán aquí.",
 
+        //29. Textos utilizados para dar de baja un equipo.
+        decommissionButton: "Dar de baja equipo",
+        decommissionTitle: "Dar de baja equipo",
+        decommissionMessageStart: "¿Está seguro de que desea dar de baja el equipo",
+        decommissionMessageEnd: "? El equipo permanecerá registrado y conservará su historial.",
+        decommissionConfirm: "Dar de baja",
+        decommissionSuccessTitle: "Equipo dado de baja",
+        decommissionSuccessMessageStart: "El equipo",
+        decommissionSuccessMessageEnd: "fue dado de baja correctamente.",
+
 
     },
 
@@ -272,6 +282,16 @@ export const translations = {
         newLocation: "New location",
         noMovementsTitle: "No movements recorded",
         noMovementsMessage: "Location changes made to this equipment will appear here.",
+
+        //29. Texts used to deactivate equipment.
+        decommissionButton: "Deactivate equipment",
+        decommissionTitle: "Deactivate equipment",
+        decommissionMessageStart: "Are you sure you want to deactivate equipment",
+        decommissionMessageEnd: "? The equipment will remain registered and keep its history.",
+        decommissionConfirm: "Deactivate",
+        decommissionSuccessTitle: "Equipment deactivated",
+        decommissionSuccessMessageStart: "Equipment",
+        decommissionSuccessMessageEnd: "was deactivated successfully.",
 
 
     },
