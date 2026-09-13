@@ -227,10 +227,10 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
 
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
-                            onPress={() => console.log("Mostrar QR")}
+                            onPress={() => setPrintQrModalVisible(true)}
                         >
                             <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
-                            <Text style={[styles.actionText, { color: colors.text }]}>{t("qrAction")}</Text>
+                            <Text style={[styles.actionText, { color: colors.text }]}>{t("printQr")}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -263,15 +263,6 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                     </View>
                     {/* Mostramos también el código para identificarlo visualmente */}
                     <Text style={[styles.qrCode, { color: colors.textSecondary }]}>{equipo.codigo}</Text>
-
-                    {/* Permite abrir la vista previa para imprimir o reimprimir el QR */}
-                    <TouchableOpacity
-                        style={[styles.printQrButton, { backgroundColor: colors.primary }]}
-                        onPress={() => setPrintQrModalVisible(true)}
-                    >
-                        <Ionicons name="print-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.printQrButtonText}>{t("printQr")}</Text>
-                    </TouchableOpacity>
                 </View>
             </ScrollView>
 
@@ -730,24 +721,6 @@ const styles = StyleSheet.create({
     qrCode: {
         fontSize: 14,
         fontWeight: "500",
-    },
-
-    // Botón para imprimir o reimprimir la etiqueta QR
-    printQrButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 18,
-        borderRadius: 10,
-        marginTop: 4,
-    },
-
-    printQrButtonText: {
-        color: "#FFFFFF",
-        fontSize: 15,
-        fontWeight: "600",
     },
 
     // Fondo oscuro detrás del modal de impresión
