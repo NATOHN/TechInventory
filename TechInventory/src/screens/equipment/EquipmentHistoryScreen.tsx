@@ -59,7 +59,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="arrow-back" size={22} color={colors.primary} />
                 <Text style={[styles.backText, { color: colors.primary }]}>
-                     {t("backButton")}
+                    {t("backButton")}
                 </Text>
             </TouchableOpacity>
 
@@ -142,6 +142,13 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                 <Text style={[styles.departmentValue, { color: colors.textSecondary }]}>
                                     {movimiento.departamentoAnterior}
                                 </Text>
+
+                                {/* Los movimientos antiguos pueden no tener información del empleado. */}
+                                {movimiento.empleadoAnterior !== undefined && (
+                                    <Text style={[styles.employeeValue, { color: colors.textSecondary }]}>
+                                        {t("assignedLabel")}: {movimiento.empleadoAnterior || t("unassigned")}
+                                    </Text>
+                                )}
                             </View>
 
 
@@ -168,6 +175,13 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                 <Text style={[styles.departmentValue, { color: colors.textSecondary }]}>
                                     {movimiento.departamentoNuevo}
                                 </Text>
+
+                                {/* Mostramos el nuevo responsable cuando el movimiento lo contiene. */}
+                                {movimiento.empleadoNuevo !== undefined && (
+                                    <Text style={[styles.employeeValue, { color: colors.textSecondary }]}>
+                                        {t("assignedLabel")}: {movimiento.empleadoNuevo || t("unassigned")}
+                                    </Text>
+                                )}
                             </View>
 
                         </View>
@@ -287,6 +301,13 @@ const styles = StyleSheet.create({
         textAlign: "center",
         lineHeight: 20,
         marginTop: 6,
+    },
+
+    // Empleado responsable registrado dentro del movimiento.
+    employeeValue: {
+        fontSize: 14,
+        marginTop: 5,
+        fontWeight: "500",
     },
 });
 

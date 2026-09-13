@@ -12,6 +12,8 @@ export type EquipmentLocationHistory = {
     departamentoAnterior: string;
     sucursalNueva: string;
     departamentoNuevo: string;
+    empleadoAnterior?: string;
+    empleadoNuevo?: string;
     fecha: string;
 };
 
@@ -110,7 +112,15 @@ const equipmentSlice = createSlice({
         },
 
         // Permite actualizar la sucursal y el departamento de un equipo existente.
-        cambiarUbicacionEquipo: (state, action: PayloadAction<{ codigo: string; sucursal: string; departamento: string }>) => {
+        cambiarUbicacionEquipo: (
+            state, 
+            action: PayloadAction<{ 
+                codigo: string; 
+                sucursal: string; 
+                departamento: string;
+                empleadoAsignado: string; 
+            }>
+        ) => {
             // Buscamos el equipo utilizando su código único.
             const equipo = state.equipments.find((equipo) => equipo.codigo === action.payload.codigo);
 
@@ -125,14 +135,19 @@ const equipmentSlice = createSlice({
                 equipo.historialUbicaciones.push({
                     sucursalAnterior: equipo.sucursal,
                     departamentoAnterior: equipo.departamento,
+                    empleadoAnterior: equipo.empleadoAsignado,
+
                     sucursalNueva: action.payload.sucursal,
                     departamentoNuevo: action.payload.departamento,
+                    empleadoNuevo: action.payload.empleadoAsignado,
+
                     fecha: new Date().toISOString(),
                 });
 
                 //Actualizamos la ubicación actual del equipo.
                 equipo.sucursal = action.payload.sucursal;
                 equipo.departamento = action.payload.departamento;
+                equipo.empleadoAsignado = action.payload.empleadoAsignado;
             }
         },
 

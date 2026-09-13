@@ -13,7 +13,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { cambiarUbicacionEquipo, darDeBajaEquipo } from "../../redux/equipmentSlice";
-import { BRANCH_OPTIONS } from "../../data/equipmentCatalogs";
+import { BRANCH_OPTIONS, EMPLOYEE_OPTIONS } from "../../data/equipmentCatalogs";
 
 
 type Props = NativeStackScreenProps<
@@ -57,6 +57,11 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Guarda temporalmente el nuevo departamento seleccionado por el usuario.
     const [selectedNewDepartment, setSelectedNewDepartment] = useState(departamento);
 
+    // Guarda temporalmente el empleado responsable de la nueva ubicación.
+    const [selectedNewEmployee, setSelectedNewEmployee] = useState(
+        empleadoAsignado === "Sin asignar" ? "" : empleadoAsignado
+    );
+
     // Obtenemos las sucursales desde el catálogo independiente.
     const sucursalesDisponibles = BRANCH_OPTIONS.map((branch) => branch.name);
 
@@ -68,6 +73,19 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
 
     // // Obtenemos los departamentos pertenecientes a la sucursal seleccionada.
     const departamentosDisponibles = selectedBranchOption?.departments.map((department) => department.name) ?? [];
+
+    // Buscamos el departamento seleccionado dentro de la nueva sucursal.
+    const selectedDepartmentOption = selectedBranchOption?.departments.find(
+        (department) => department.name === selectedNewDepartment
+    );
+
+    // Mostramos únicamente los empleados que pertenecen
+    // a la nueva sucursal y departamento seleccionados.
+    const empleadosDisponibles = EMPLOYEE_OPTIONS.filter(
+        (employee) =>
+            employee.branchId === selectedBranchOption?.id &&
+            employee.departmentId === selectedDepartmentOption?.id
+    );
 
     // Controla la apertura de la vista previa para imprimir o reimprimir el QR
     const [printQrModalVisible, setPrintQrModalVisible] = useState(false);
@@ -216,8 +234,13 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                             style={[styles.actionButton, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
                             // Abre el modal para cambiar la ubicación del equipo.
                             onPress={() => {
+                                // Cargamos los datos actuales para iniciar el cambio
+                                // desde la ubicación y responsable que posee el equipo.
                                 setSelectedNewBranch(sucursal);
                                 setSelectedNewDepartment(departamento);
+                                setSelectedNewEmployee(
+                                    empleadoAsignado === "Sin asignar" ? "" : empleadoAsignado
+                                );
                                 setShowLocationModal(true);
                             }}
                         >
@@ -284,6 +307,13 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                         <Text style={[styles.modalLabel, { color: colors.textSecondary }]}>{t("currentLocationLabel")}</Text>
                         <Text style={[styles.currentLocation, { color: colors.text }]}>{`${sucursal} • ${departamento}`}</Text>
 
+                        {/* Mostramos también el responsable actual del equipo. */}
+                        <Text style={[styles.currentEmployee, { color: colors.textSecondary }]}>
+                            {t("assignedLabel")}: {!empleadoAsignado || empleadoAsignado === "Sin asignar"
+                                ? t("unassigned")
+                                : empleadoAsignado}
+                        </Text>
+
                         {/* Permitimos seleccionar la nueva sucursal utilizando las ubicaciones existentes en Redux. */}
                         <Text style={[styles.locationSectionTitle, { color: colors.text }]}>{t("newBranchLabel")}</Text>
 
@@ -298,7 +328,11 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                                     }]}
                                     //Al cambiar de sucursal reiniciamos el departamento para evitar conservar 
                                     // uno que no pertenezca a la nueva sucursal. 
-                                    onPress={() => { setSelectedNewBranch(branch); setSelectedNewDepartment(""); }}
+                                    onPress={() => {
+                                        setSelectedNewBranch(branch);
+                                        setSelectedNewDepartment("");
+                                        setSelectedNewEmployee("");
+                                    }}
                                 >
                                     <Text style={{ color: selectedNewBranch === branch ? colors.background : colors.textSecondary }}>
                                         {branch}
@@ -319,13 +353,68 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                                         backgroundColor: selectedNewDepartment === department ? colors.primary : colors.surface,
                                         borderColor: selectedNewDepartment === department ? colors.primary : colors.border
                                     }]}
-                                    onPress={() => setSelectedNewDepartment(department)}
+                                    onPress={() => {
+                                        setSelectedNewDepartment(department);
+                                        setSelectedNewEmployee("");
+                                    }}
                                 >
                                     <Text style={{ color: selectedNewDepartment === department ? colors.background : colors.textSecondary }}>
                                         {department}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
+                        </View>
+
+                        {/* Permitimos seleccionar el responsable de la nueva ubicación. */}
+                        <Text style={[styles.locationSectionTitle, { color: colors.text }]}>
+                            {t("assignedEmployeePlaceholder")}
+                        </Text>
+
+                        <View style={styles.locationOptions}>
+
+                            {/* El equipo también puede quedar sin empleado asignado. */}
+                            <TouchableOpacity
+                                style={[styles.locationOption, {
+                                    backgroundColor: !selectedNewEmployee ? colors.primary : colors.surface,
+                                    borderColor: !selectedNewEmployee ? colors.primary : colors.border
+                                }]}
+                                onPress={() => setSelectedNewEmployee("")}
+                            >
+                                <Text style={{
+                                    color: !selectedNewEmployee ? colors.background : colors.textSecondary
+                                }}>
+                                    {t("unassigned")}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Mostramos únicamente empleados válidos para la nueva ubicación. */}
+                            {empleadosDisponibles.map((employee) => (
+                                <TouchableOpacity
+                                    key={employee.id}
+                                    style={[styles.locationOption, {
+                                        backgroundColor:
+                                            selectedNewEmployee === employee.name
+                                                ? colors.primary
+                                                : colors.surface,
+
+                                        borderColor:
+                                            selectedNewEmployee === employee.name
+                                                ? colors.primary
+                                                : colors.border
+                                    }]}
+                                    onPress={() => setSelectedNewEmployee(employee.name)}
+                                >
+                                    <Text style={{
+                                        color:
+                                            selectedNewEmployee === employee.name
+                                                ? colors.background
+                                                : colors.textSecondary
+                                    }}>
+                                        {employee.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+
                         </View>
 
 
@@ -335,7 +424,28 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                             onPress={() => {
                                 // Evitamos guardar una ubicación sin departamento.
                                 if (!selectedNewDepartment) {
-                                    Alert.alert(t("incompleteFieldsTitle"), t("selectDepartmentMessage"));
+                                    Alert.alert(t("incompleteFieldsTitle"),
+                                        t("selectDepartmentMessage")
+                                    );
+                                    return;
+                                }
+
+                                // Convertimos la selección vacía en el valor que realmente se guarda en Redux.
+                                const nuevoEmpleado = selectedNewEmployee || "Sin asignar";
+
+                                // Verificamos si sucursal, departamento y empleado
+                                // continúan exactamente igual que antes.
+                                const noHayCambios =
+                                    selectedNewBranch === sucursal &&
+                                    selectedNewDepartment === departamento &&
+                                    nuevoEmpleado === empleadoAsignado;
+
+                                // Evitamos crear un registro innecesario dentro del historial.
+                                if (noHayCambios) {
+                                    Alert.alert(
+                                        t("noChangesTitle"),
+                                        t("noChangesMessage")
+                                    );
                                     return;
                                 }
 
@@ -343,7 +453,9 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                                 dispatch(cambiarUbicacionEquipo({
                                     codigo,
                                     sucursal: selectedNewBranch,
-                                    departamento: selectedNewDepartment
+                                    departamento: selectedNewDepartment,
+                                    // Si no seleccionamos un empleado, guardamos "Sin asignar".
+                                    empleadoAsignado: nuevoEmpleado,
                                 }));
 
                                 // Cerramos el modal y confirmamos el cambio.
@@ -418,7 +530,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
             </Modal>
 
 
-        </SafeAreaView>
+        </SafeAreaView >
     );
 };
 
@@ -847,6 +959,12 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "700",
         marginLeft: 8,
+    },
+
+    // Responsable actual mostrado dentro del modal de reasignación.
+    currentEmployee: {
+        fontSize: 14,
+        marginTop: 5,
     },
 
 

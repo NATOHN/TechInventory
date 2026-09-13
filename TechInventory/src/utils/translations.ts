@@ -101,7 +101,7 @@ export const translations = {
         quickActionsTitle: "Acciones rápidas",
         maintenanceAction: "Mantenimiento",
         historyAction: "Historial",
-        changeLocationAction: "Cambiar ubicación",
+        changeLocationAction: "Reasignar equipo",
         qrAction: "Código QR",
 
         //24. Textos utilizados al cambiar la ubicación de un equipo.
@@ -150,6 +150,10 @@ export const translations = {
         takePhotoButton: "Tomar fotografía",
         cameraPermissionTitle: "Permiso requerido",
         cameraPermissionMessage: "Debe permitir el acceso a la cámara para tomar una fotografía.",
+
+        // 31. Mensaje mostrado cuando se intenta guardar una reasignación sin modificaciones.
+        noChangesTitle: "Sin cambios",
+        noChangesMessage: "No se realizó ningún cambio en la ubicación o empleado asignado.",
 
 
     },
@@ -253,7 +257,7 @@ export const translations = {
         quickActionsTitle: "Quick actions",
         maintenanceAction: "Maintenance",
         historyAction: "History",
-        changeLocationAction: "Change location",
+        changeLocationAction: "Reassign equipment",
         qrAction: "QR Code",
 
         //24.Texts used when changing an equipment location.
@@ -302,6 +306,10 @@ export const translations = {
         takePhotoButton: "Take photo",
         cameraPermissionTitle: "Permission required",
         cameraPermissionMessage: "You must allow camera access to take a photo.",
+
+        //31. Message displayed when attempting to save a reassignment without changes.
+        noChangesTitle: "No changes",
+        noChangesMessage: "No changes were made to the location or assigned employee.",
 
 
     },

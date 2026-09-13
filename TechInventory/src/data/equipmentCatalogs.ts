@@ -80,4 +80,23 @@ export const EMPLOYEE_OPTIONS: EmployeeOption[] = [
         branchId: "san-pedro-sula",
         departmentId: "contabilidad-sps",
     },
+
+    {
+        id: "emp-004",
+        name: "Mario Banegas",
+        branchId: "tegucigalpa",
+        departmentId: "administracion-tgu",
+    },
+    {
+        id: "emp-005",
+        name: "Carlos Mendez",
+        branchId: "tegucigalpa",
+        departmentId: "administracion-tgu",
+    },
+    {
+        id: "emp-006",
+        name: "Edwin Rios",
+        branchId: "san-pedro-sula",
+        departmentId: "contabilidad-sps",
+    },
 ];
