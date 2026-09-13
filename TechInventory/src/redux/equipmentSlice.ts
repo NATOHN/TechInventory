@@ -32,6 +32,8 @@ export type Equipment = {
     foto: ImageSourcePropType;
     // Guarda los cambios de ubicación realizados al equipo.
     historialUbicaciones?: EquipmentLocationHistory[];
+    // Guarda temporalmente el estado que tenía el equipo antes de ser dado de baja.
+    estadoAntesDeBaja?: 'activo' | 'taller';
 };
 
 
@@ -113,12 +115,12 @@ const equipmentSlice = createSlice({
 
         // Permite actualizar la sucursal y el departamento de un equipo existente.
         cambiarUbicacionEquipo: (
-            state, 
-            action: PayloadAction<{ 
-                codigo: string; 
-                sucursal: string; 
+            state,
+            action: PayloadAction<{
+                codigo: string;
+                sucursal: string;
                 departamento: string;
-                empleadoAsignado: string; 
+                empleadoAsignado: string;
             }>
         ) => {
             // Buscamos el equipo utilizando su código único.
@@ -152,17 +154,44 @@ const equipmentSlice = createSlice({
         },
 
         // Permite dar de baja un equipo sin eliminarlo del inventario.
-        darDeBajaEquipo: ( state, action: PayloadAction<{ codigo: string }>) => {
+        darDeBajaEquipo: (state, action: PayloadAction<{ codigo: string }>) => {
             // Buscamos el equipo utilizando su código único.
-            const equipo = state.equipments.find((equipo) => equipo.codigo === action.payload.codigo);
+            const equipo = state.equipments.find(
+                (equipo) => equipo.codigo === action.payload.codigo
+            );
             // Si encontramos el equipo, cambiamos únicamente su estado.
-            if (equipo) {
+            if (equipo && equipo.status !== "baja") {
+                //Guardamos el estado actual para poder restaurarlo posteriormente.
+                equipo.estadoAntesDeBaja = equipo.status;
+                // Cambiamos el estado actual a baja.
                 equipo.status = "baja";
+            }
+        },
+
+        // Permite reactivar un equipo que anteriormente fue dado de baja.
+        reactivarEquipo: (
+            state,
+            action: PayloadAction<{ codigo: string }>
+        ) => {
+
+            // Buscamos el equipo mediante su código único.
+            const equipo = state.equipments.find(
+                (equipo) => equipo.codigo === action.payload.codigo
+            );
+
+            if (equipo && equipo.status === "baja") {
+
+                // Restauramos el estado que poseía antes de la baja.
+                // Si es un registro antiguo sin estado previo, vuelve a activo.
+                equipo.status = equipo.estadoAntesDeBaja ?? "activo";
+
+                // Ya no necesitamos conservar temporalmente el estado anterior.
+                delete equipo.estadoAntesDeBaja;
             }
         },
 
     },
 });
 
-export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo, darDeBajaEquipo} = equipmentSlice.actions;
+export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo, darDeBajaEquipo, reactivarEquipo } = equipmentSlice.actions;
 export default equipmentSlice.reducer;

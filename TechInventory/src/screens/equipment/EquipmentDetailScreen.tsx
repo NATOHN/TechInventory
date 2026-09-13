@@ -12,7 +12,7 @@ import StatusBadge from "../../components/StatusBadge";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
-import { cambiarUbicacionEquipo, darDeBajaEquipo } from "../../redux/equipmentSlice";
+import { cambiarUbicacionEquipo, darDeBajaEquipo, reactivarEquipo } from "../../redux/equipmentSlice";
 import { BRANCH_OPTIONS, EMPLOYEE_OPTIONS } from "../../data/equipmentCatalogs";
 
 
@@ -128,6 +128,39 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                         Alert.alert(
                             t("decommissionSuccessTitle"),
                             `${t("decommissionSuccessMessageStart")} ${equipo.codigo} ${t("decommissionSuccessMessageEnd")}`
+                        );
+                    },
+                },
+            ]
+        );
+    };
+
+    // Solicita confirmación antes de reactivar un equipo.
+    // Redux restaurará el estado que poseía antes de ser dado de baja.
+    const handleReactivarEquipo = () => {
+        Alert.alert(
+            t("reactivateTitle"),
+            `${t("reactivateMessageStart")} ${equipo.codigo}${t("reactivateMessageEnd")}`,
+            [
+                // Cancela la operación sin modificar el equipo.
+                {
+                    text: t("cancel"),
+                    style: "cancel",
+                },
+
+                // Confirma la reactivación.
+                {
+                    text: t("reactivateConfirm"),
+                    onPress: () => {
+                        dispatch(
+                            reactivarEquipo({
+                                codigo: equipo.codigo
+                            })
+                        );
+
+                        Alert.alert(
+                            t("reactivateSuccessTitle"),
+                            `${t("reactivateSuccessMessageStart")} ${equipo.codigo} ${t("reactivateSuccessMessageEnd")}`
                         );
                     },
                 },
@@ -260,7 +293,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
 
                 {/* Acción administrativa para dar de baja el equipo. 
                 Solo se muestra mientras el equipo no tenga estado "baja". */}
-                {status !== "baja" && (
+                {status !== "baja" ? (
                     <TouchableOpacity
                         style={styles.decommissionButton}
                         onPress={handleDarDeBaja}
@@ -275,7 +308,31 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                             {t("decommissionButton")}
                         </Text>
                     </TouchableOpacity>
+                ) : (
+
+                    // Los equipos dados de baja pueden ser reactivados.
+                    <TouchableOpacity
+                        style={[
+                            styles.reactivateButton,
+                            { borderColor: colors.primary }
+                        ]}
+                        onPress={handleReactivarEquipo}
+                    >
+                        <Ionicons
+                            name="refresh-circle-outline"
+                            size={21}
+                            color={colors.primary}
+                        />
+
+                        <Text style={[
+                            styles.reactivateButtonText,
+                            { color: colors.primary }
+                        ]}>
+                            {t("reactivateButton")}
+                        </Text>
+                    </TouchableOpacity>
                 )}
+
 
                 {/* Código QR generado utilizando el código único del equipo */}
                 <View style={styles.qrContainer}>
@@ -965,6 +1022,23 @@ const styles = StyleSheet.create({
     currentEmployee: {
         fontSize: 14,
         marginTop: 5,
+    },
+
+    // Botón utilizado únicamente para equipos dados de baja.
+    reactivateButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 13,
+        borderWidth: 1,
+        borderRadius: 12,
+        marginBottom: 24,
+    },
+
+    reactivateButtonText: {
+        fontSize: 15,
+        fontWeight: "700",
+        marginLeft: 8,
     },
 
 

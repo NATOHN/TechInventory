@@ -155,6 +155,16 @@ export const translations = {
         noChangesTitle: "Sin cambios",
         noChangesMessage: "No se realizó ningún cambio en la ubicación o empleado asignado.",
 
+        //32. Textos utilizados para reactivar un equipo dado de baja.
+        reactivateButton: "Reactivar equipo",
+        reactivateTitle: "Reactivar equipo",
+        reactivateMessageStart: "¿Está seguro de que desea reactivar el equipo",
+        reactivateMessageEnd: "? Se restaurará el estado que tenía antes de ser dado de baja.",
+        reactivateConfirm: "Reactivar",
+        reactivateSuccessTitle: "Equipo reactivado",
+        reactivateSuccessMessageStart: "El equipo",
+        reactivateSuccessMessageEnd: "fue reactivado correctamente.",
+
 
     },
 
@@ -310,6 +320,16 @@ export const translations = {
         //31. Message displayed when attempting to save a reassignment without changes.
         noChangesTitle: "No changes",
         noChangesMessage: "No changes were made to the location or assigned employee.",
+
+        //32. Texts used to reactivate decommissioned equipment.
+        reactivateButton: "Reactivate equipment",
+        reactivateTitle: "Reactivate equipment",
+        reactivateMessageStart: "Are you sure you want to reactivate equipment",
+        reactivateMessageEnd: "? Its previous status will be restored.",
+        reactivateConfirm: "Reactivate",
+        reactivateSuccessTitle: "Equipment reactivated",
+        reactivateSuccessMessageStart: "Equipment",
+        reactivateSuccessMessageEnd: "was reactivated successfully.",
 
 
     },
