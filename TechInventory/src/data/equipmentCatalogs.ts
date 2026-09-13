@@ -49,3 +49,35 @@ export const BRANCH_OPTIONS: BranchOption[] = [
         ],
     },
 ];
+
+// 6. Define la estructura de cada empleado disponible.
+// Cada empleado pertenece a una sucursal y departamento específicos.
+export type EmployeeOption = {
+    id: string;
+    name: string;
+    branchId: string;
+    departmentId: string;
+};
+
+// 7. Catálogo temporal de empleados.
+// Más adelante esta información será obtenida desde Supabase.
+export const EMPLOYEE_OPTIONS: EmployeeOption[] = [
+    {
+        id: "emp-001",
+        name: "Carlos López",
+        branchId: "tegucigalpa",
+        departmentId: "administracion-tgu",
+    },
+    {
+        id: "emp-002",
+        name: "Josue Meza",
+        branchId: "san-pedro-sula",
+        departmentId: "ventas-sps",
+    },
+    {
+        id: "emp-003",
+        name: "Maria Meza",
+        branchId: "san-pedro-sula",
+        departmentId: "contabilidad-sps",
+    },
+];

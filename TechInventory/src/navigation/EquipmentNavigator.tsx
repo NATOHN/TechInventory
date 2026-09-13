@@ -5,6 +5,7 @@ import EquipmentListScreen from "../screens/equipment/EquipmentListScreen";
 import RegisterEquipmentScreen from "../screens/equipment/RegisterEquipmentScreen";
 import EquipmentDetailScreen from "../screens/equipment/EquipmentDetailScreen";
 import EquipmentHistoryScreen from "../screens/equipment/EquipmentHistoryScreen";
+import EquipmentScannerScreen from "../screens/equipment/EquipmentScannerScreen";
 
 
 
@@ -36,7 +37,7 @@ const EquipmentNavigator = () => {
             <Stack.Screen name='EquipmentList' component={EquipmentListScreen} />
             <Stack.Screen name="RegisterEquipment" component={RegisterEquipmentScreen} />
             <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} />
-            <Stack.Screen name="EquipmentHistory" component={EquipmentHistoryScreen}/>
+            <Stack.Screen name="EquipmentHistory" component={EquipmentHistoryScreen} />
         </Stack.Navigator>
     );
 };

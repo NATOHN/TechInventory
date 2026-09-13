@@ -146,6 +146,11 @@ export const translations = {
         decommissionSuccessMessageStart: "El equipo",
         decommissionSuccessMessageEnd: "fue dado de baja correctamente.",
 
+        //30. Textos utilizados para capturar fotografías del equipo.
+        takePhotoButton: "Tomar fotografía",
+        cameraPermissionTitle: "Permiso requerido",
+        cameraPermissionMessage: "Debe permitir el acceso a la cámara para tomar una fotografía.",
+
 
     },
 
@@ -292,6 +297,11 @@ export const translations = {
         decommissionSuccessTitle: "Equipment deactivated",
         decommissionSuccessMessageStart: "Equipment",
         decommissionSuccessMessageEnd: "was deactivated successfully.",
+
+        //30. Texts used to capture equipment photos.
+        takePhotoButton: "Take photo",
+        cameraPermissionTitle: "Permission required",
+        cameraPermissionMessage: "You must allow camera access to take a photo.",
 
 
     },

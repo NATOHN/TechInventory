@@ -13,7 +13,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { agregarEquipo, Equipment } from "../../redux/equipmentSlice";
 // Catálogo independiente de marcas disponibles.
-import { BRAND_OPTIONS, BRANCH_OPTIONS } from "../../data/equipmentCatalogs";
+import { BRAND_OPTIONS, BRANCH_OPTIONS, EMPLOYEE_OPTIONS } from "../../data/equipmentCatalogs";
 
 
 //Creacion de Props
@@ -53,6 +53,9 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     // Controla la apertura del selector de departamentos.
     const [showDepartmentModal, setShowDepartmentModal] = useState(false);
 
+    // Controla la apertura del selector de empleados.
+    const [showEmployeeModal, setShowEmployeeModal] = useState(false);
+
 
     // Buscamos en el catálogo la sucursal seleccionada actualmente.
     const selectedBranchOption = BRANCH_OPTIONS.find((branch) => branch.name === sucursal);
@@ -60,6 +63,19 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     // Obtenemos únicamente los departamentos pertenecientes
     // a la sucursal seleccionada.
     const departamentosDisponibles = selectedBranchOption?.departments ?? [];
+
+    // Buscamos el departamento seleccionado dentro de la sucursal actual.
+    const selectedDepartmentOption = selectedBranchOption?.departments.find(
+        (department) => department.name === departamento
+    );
+
+    // Filtramos únicamente los empleados que pertenecen
+    // a la sucursal y departamento seleccionados.
+    const empleadosDisponibles = EMPLOYEE_OPTIONS.filter(
+        (employee) =>
+            employee.branchId === selectedBranchOption?.id &&
+            employee.departmentId === selectedDepartmentOption?.id
+    );
 
     //Creamos una función para generar automáticamente el código correspondiente al próximo equipo.
     const generarCodigoEquipo = () => {
@@ -99,6 +115,34 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
         //4. Validamos si el usuario abrio la galeria y selecciono una imagen o si abrio y cerro su galeria
         // si el usuario cancela canceled = true
         // si el usuario selecciona una imagen canceled = false
+        if (!resultado.canceled) {
+            setFoto(resultado.assets[0].uri);
+        }
+    };
+
+    // Abre la cámara del dispositivo para tomar una fotografía del equipo.
+    const tomarFotografia = async () => {
+
+        // Solicitamos permiso para utilizar la cámara.
+        const permiso = await ImagePicker.requestCameraPermissionsAsync();
+
+        // Si el usuario no concede el permiso, detenemos el proceso.
+        if (!permiso.granted) {
+            Alert.alert(
+                t("cameraPermissionTitle"),
+                t("cameraPermissionMessage")
+            );
+            return;
+        }
+
+        // Abrimos la cámara.
+        const resultado = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            quality: 1,
+        });
+
+        // Guardamos la URI de la fotografía tomada.
         if (!resultado.canceled) {
             setFoto(resultado.assets[0].uri);
         }
@@ -175,7 +219,11 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     //2. Hacemos uso de nustro componente reutilizable CustomInput
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-            <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+            <ScrollView 
+                style={{ backgroundColor: colors.background }} 
+                contentContainerStyle={styles.container} 
+                showsVerticalScrollIndicator={false}
+            >
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Ionicons name="arrow-back" size={22} color={colors.primary} />
                     <Text style={[styles.backText, { color: colors.primary }]}>{t("backButton")}</Text>
@@ -242,13 +290,38 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                     <Ionicons name="chevron-down" size={20} color={colors.textSecondary} />
                 </TouchableOpacity>
 
+                {/* Selector de empleado dependiente de la sucursal y departamento. */}
+                <TouchableOpacity
+                    style={[styles.selectField, {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        opacity: sucursal && departamento ? 1 : 0.6
+                    }]}
+                    // El selector solamente se habilita cuando existe
+                    // una sucursal y departamento seleccionados.
+                    disabled={!sucursal || !departamento}
+                    onPress={() => setShowEmployeeModal(true)}
+                >
+                    <Text style={{
+                        color: empleadoAsignado ? colors.text : colors.textSecondary
+                    }}>
+                        {empleadoAsignado || t("assignedEmployeePlaceholder")}
+                    </Text>
 
-                <CustomInput
-                    type="text"
-                    placeholder={t("assignedEmployeePlaceholder")}
-                    value={empleadoAsignado}
-                    onChange={setEmpleadoAsignado}
+                    <Ionicons
+                        name="chevron-down"
+                        size={20}
+                        color={colors.textSecondary}
+                    />
+                </TouchableOpacity>
+
+                {/* Permite tomar una fotografía directamente con la cámara. */}
+                <CustomButton
+                    title={t("takePhotoButton")}
+                    onPress={tomarFotografia}
+                    variant="secondary"
                 />
+
                 <CustomButton
                     title={t("selectPhotoButton")}
                     onPress={seleccionarImagen}
@@ -347,8 +420,9 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                                     // Reiniciamos departamento para evitar conservar uno
                                     // que pertenezca a una sucursal diferente.
                                     setDepartamento("");
-
+                                    setEmpleadoAsignado("");
                                     setShowBranchModal(false);
+
                                 }}
                             >
                                 <Text style={[styles.selectionOptionText, { color: colors.text }]}>
@@ -400,6 +474,9 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                                 }]}
                                 onPress={() => {
                                     setDepartamento(department.name);
+                                    // Evitamos conservar un empleado perteneciente
+                                    // a otro departamento.
+                                    setEmpleadoAsignado("");
                                     setShowDepartmentModal(false);
                                 }}
                             >
@@ -421,6 +498,69 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Modal para seleccionar un empleado perteneciente
+            a la sucursal y departamento elegidos. */}
+            <Modal
+                visible={showEmployeeModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowEmployeeModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.selectionModal, { backgroundColor: colors.cardBackground }]}>
+
+                        {/* Encabezado del selector de empleados. */}
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                {t("assignedEmployeePlaceholder")}
+                            </Text>
+
+                            <TouchableOpacity onPress={() => setShowEmployeeModal(false)}>
+                                <Ionicons name="close" size={26} color={colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Permitimos registrar el equipo sin empleado asignado. */}
+                        <TouchableOpacity
+                            style={[styles.selectionOption, { borderBottomColor: colors.border }]}
+                            onPress={() => {
+                                setEmpleadoAsignado("");
+                                setShowEmployeeModal(false);
+                            }}
+                        >
+                            <Text style={[styles.selectionOptionText, { color: colors.text }]}>
+                                {t("unassigned")}
+                            </Text>
+
+                            {!empleadoAsignado && (
+                                <Ionicons name="checkmark" size={22} color={colors.primary} />
+                            )}
+                        </TouchableOpacity>
+
+                        {/* Mostramos solamente los empleados disponibles para la ubicación seleccionada. */}
+                        {empleadosDisponibles.map((employee) => (
+                            <TouchableOpacity
+                                key={employee.id}
+                                style={[styles.selectionOption, { borderBottomColor: colors.border }]}
+                                onPress={() => {
+                                    setEmpleadoAsignado(employee.name);
+                                    setShowEmployeeModal(false);
+                                }}
+                            >
+                                <Text style={[styles.selectionOptionText, { color: colors.text }]}>
+                                    {employee.name}
+                                </Text>
+
+                                {empleadoAsignado === employee.name && (
+                                    <Ionicons name="checkmark" size={22} color={colors.primary} />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -434,7 +574,7 @@ const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20,
         paddingTop: 20,
-        paddingBottom: 30,
+        paddingBottom: 130,
     },
 
     title: {
