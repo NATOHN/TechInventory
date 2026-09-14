@@ -5,8 +5,7 @@ import EquipmentListScreen from "../screens/equipment/EquipmentListScreen";
 import RegisterEquipmentScreen from "../screens/equipment/RegisterEquipmentScreen";
 import EquipmentDetailScreen from "../screens/equipment/EquipmentDetailScreen";
 import EquipmentHistoryScreen from "../screens/equipment/EquipmentHistoryScreen";
-import EquipmentScannerScreen from "../screens/equipment/EquipmentScannerScreen";
-
+import EditEquipmentScreen from "../screens/equipment/EditEquipmentScreen";
 
 
 export type EquipmentStackParamList = {
@@ -27,6 +26,10 @@ export type EquipmentStackParamList = {
     EquipmentHistory: {
         codigo: string;
     };
+    // Ruta para editar los datos propios de un equipo.
+    EditEquipment: {
+        codigo: string;
+    };
 };
 
 const Stack = createNativeStackNavigator<EquipmentStackParamList>();
@@ -38,6 +41,7 @@ const EquipmentNavigator = () => {
             <Stack.Screen name="RegisterEquipment" component={RegisterEquipmentScreen} />
             <Stack.Screen name="EquipmentDetail" component={EquipmentDetailScreen} />
             <Stack.Screen name="EquipmentHistory" component={EquipmentHistoryScreen} />
+            <Stack.Screen name="EditEquipment" component={EditEquipmentScreen}/>
         </Stack.Navigator>
     );
 };

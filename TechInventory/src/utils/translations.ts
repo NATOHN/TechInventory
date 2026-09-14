@@ -165,6 +165,12 @@ export const translations = {
         reactivateSuccessMessageStart: "El equipo",
         reactivateSuccessMessageEnd: "fue reactivado correctamente.",
 
+        //33. Textos utilizados para editar la información propia de un equipo.
+        editEquipmentTitle: "Editar equipo",
+        saveChangesButton: "Guardar cambios",
+        editEquipmentSuccessTitle: "Equipo actualizado",
+        editEquipmentSuccessMessage: "La información del equipo se actualizó correctamente.",
+
 
     },
 
@@ -330,6 +336,12 @@ export const translations = {
         reactivateSuccessTitle: "Equipment reactivated",
         reactivateSuccessMessageStart: "Equipment",
         reactivateSuccessMessageEnd: "was reactivated successfully.",
+
+        //33. Texts used to edit equipment information.
+        editEquipmentTitle: "Edit equipment",
+        saveChangesButton: "Save changes",
+        editEquipmentSuccessTitle: "Equipment updated",
+        editEquipmentSuccessMessage: "The equipment information was updated successfully.",
 
 
     },

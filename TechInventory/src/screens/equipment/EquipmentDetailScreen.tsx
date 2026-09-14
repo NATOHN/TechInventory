@@ -291,6 +291,29 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                     </View>
                 </View>
 
+                {/* Permite editar los datos propios del equipo. */}
+                <TouchableOpacity
+                    style={[styles.editEquipmentButton, {
+                        backgroundColor: colors.cardBackground,
+                        borderColor: colors.cardBorder
+                    }]}
+                    onPress={() => navigation.navigate("EditEquipment", {
+                        codigo: equipo.codigo
+                    })}
+                >
+                    <Ionicons
+                        name="create-outline"
+                        size={21}
+                        color={colors.primary}
+                    />
+
+                    {/*Titulo de Boton Editar */}
+                    <Text style={[styles.editEquipmentText, { color: colors.text }]}>
+                        {t("editEquipmentTitle")}
+                    </Text>
+                </TouchableOpacity>
+
+
                 {/* Acción administrativa para dar de baja el equipo. 
                 Solo se muestra mientras el equipo no tenga estado "baja". */}
                 {status !== "baja" ? (
@@ -1036,6 +1059,23 @@ const styles = StyleSheet.create({
     },
 
     reactivateButtonText: {
+        fontSize: 15,
+        fontWeight: "700",
+        marginLeft: 8,
+    },
+
+    // Botón para acceder a la edición de información del equipo.
+    editEquipmentButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 13,
+        borderWidth: 1,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+
+    editEquipmentText: {
         fontSize: 15,
         fontWeight: "700",
         marginLeft: 8,

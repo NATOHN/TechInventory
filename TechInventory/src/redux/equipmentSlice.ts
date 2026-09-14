@@ -190,8 +190,44 @@ const equipmentSlice = createSlice({
             }
         },
 
+        // Permite editar únicamente los datos propios del equipo.
+        // No modifica ubicación, responsable, estado ni código.
+        actualizarDatosEquipo: (
+            state,
+            action: PayloadAction<{
+                codigo: string;
+                marca: string;
+                modelo: string;
+                serie: string;
+                foto: ImageSourcePropType;
+            }>
+        ) => {
+
+            // Buscamos el equipo utilizando su código único.
+            const equipo = state.equipments.find(
+                (equipo) => equipo.codigo === action.payload.codigo
+            );
+
+            // Si encontramos el equipo, actualizamos únicamente
+            // la información permitida desde Editar equipo.
+            if (equipo) {
+                equipo.marca = action.payload.marca;
+                equipo.modelo = action.payload.modelo;
+                equipo.serie = action.payload.serie;
+                equipo.foto = action.payload.foto;
+            }
+        },
+
     },
 });
 
-export const { agregarEquipo, cargarEquipos, cambiarUbicacionEquipo, darDeBajaEquipo, reactivarEquipo } = equipmentSlice.actions;
+export const { 
+    agregarEquipo, 
+    cargarEquipos, 
+    cambiarUbicacionEquipo, 
+    darDeBajaEquipo, 
+    reactivarEquipo,
+    actualizarDatosEquipo 
+} = equipmentSlice.actions;
+
 export default equipmentSlice.reducer;
