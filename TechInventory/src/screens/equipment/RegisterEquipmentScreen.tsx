@@ -162,6 +162,22 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
             return;
         }
 
+        // Verificamos que el número de serie no pertenezca
+        // a otro equipo registrado en el inventario.
+        const serieDuplicada = equipos.some(
+            (equipo) =>
+                equipo.serie.trim().toLowerCase() ===
+                serie.trim().toLowerCase()
+        );
+
+        if (serieDuplicada) {
+            Alert.alert(
+                t("duplicateSerialTitle"),
+                t("duplicateSerialMessage")
+            );
+            return;
+        }
+
         // 9. Construimos el objeto que representa el nuevo equipo.
         // Indicamos que debe cumplir exactamente con la estructura Equipment.
         const nuevoEquipo: Equipment = {
@@ -219,9 +235,9 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     //2. Hacemos uso de nustro componente reutilizable CustomInput
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-            <ScrollView 
-                style={{ backgroundColor: colors.background }} 
-                contentContainerStyle={styles.container} 
+            <ScrollView
+                style={{ backgroundColor: colors.background }}
+                contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
                 <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>

@@ -153,7 +153,7 @@ export const translations = {
 
         // 31. Mensaje mostrado cuando se intenta guardar una reasignación sin modificaciones.
         noChangesTitle: "Sin cambios",
-        noChangesMessage: "No se realizó ningún cambio en la ubicación o empleado asignado.",
+        noChangesMessage: "No se realizó ningún cambio.",
 
         //32. Textos utilizados para reactivar un equipo dado de baja.
         reactivateButton: "Reactivar equipo",
@@ -170,6 +170,10 @@ export const translations = {
         saveChangesButton: "Guardar cambios",
         editEquipmentSuccessTitle: "Equipo actualizado",
         editEquipmentSuccessMessage: "La información del equipo se actualizó correctamente.",
+
+        //34. Validación para evitar números de serie repetidos.
+        duplicateSerialTitle: "Serie duplicada",
+        duplicateSerialMessage: "Ya existe un equipo registrado con este número de serie.",
 
 
     },
@@ -325,7 +329,7 @@ export const translations = {
 
         //31. Message displayed when attempting to save a reassignment without changes.
         noChangesTitle: "No changes",
-        noChangesMessage: "No changes were made to the location or assigned employee.",
+        noChangesMessage: "No changes were made.",
 
         //32. Texts used to reactivate decommissioned equipment.
         reactivateButton: "Reactivate equipment",
@@ -342,6 +346,10 @@ export const translations = {
         saveChangesButton: "Save changes",
         editEquipmentSuccessTitle: "Equipment updated",
         editEquipmentSuccessMessage: "The equipment information was updated successfully.",
+
+        // 34. Validation to prevent duplicate serial numbers.
+        duplicateSerialTitle: "Duplicate serial number",
+        duplicateSerialMessage: "A device with this serial number is already registered.",
 
 
     },
