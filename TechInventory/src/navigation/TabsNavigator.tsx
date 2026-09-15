@@ -4,6 +4,7 @@ import { RouteProp } from '@react-navigation/native';
 import HomeTab from '../screens/tabs/HomeTab';
 import ProfileTab from '../screens/tabs/ProfileTab';
 import EquipmentNavigator from './EquipmentNavigator';
+import MaintenanceNavigator from './MaintenanceNavigator';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -11,6 +12,7 @@ export type TabsParamList = {
   Inicio: undefined;
   Perfil: undefined;
   Equipos: undefined;
+  Mantenimiento: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -57,6 +59,14 @@ export default function TabsNavigator() {
         options={{
           tabBarLabel: t("equipmentTab"),
         }}
+      />
+
+      <Tab.Screen
+      name='Mantenimiento'
+      component={MaintenanceNavigator}
+      options={{
+        tabBarLabel: t("maintenanceTab"),
+      }}
       />
       
       <Tab.Screen
