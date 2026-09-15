@@ -1,3 +1,4 @@
+// 1. Importaciones
 import { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,20 +8,29 @@ import { useAppSelector } from '../../redux/hooks';
 import MaintenanceCard from '../../components/MaintenanceCard';
 import { Maintenance } from '../../redux/maintenanceSlice';
 
+// 2. Definimos los filtros disponibles para la lista de mantenimientos.
 type FilterType = 'todos' | 'en_proceso' | 'finalizado';
 
 export default function MaintenanceScreen({ navigation }: any) {
+  // 3. Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
+
+  // 4. Obtenemos la función t desde LanguageContext para mostrar los textos traducidos.
   const { t } = useLanguage();
+
+  // 5. Estado local que controla que filtro esta activo actualmente.
   const [filter, setFilter] = useState<FilterType>('todos');
 
+  // 6. Leemos el arreglo completo de mantenimientos desde Redux.
   const maintenances = useAppSelector((state) => state.maintenance.maintenances);
 
+  // 7. Filtramos los mantenimientos segun la pestana seleccionada.
   const filteredMaintenances = maintenances.filter((m: Maintenance) => {
     if (filter === 'todos') return true;
     return m.status === filter;
   });
 
+  // 8. Definimos las pestañas visibles junto a su etiqueta traducida.
   const tabs: { key: FilterType; label: string }[] = [
     { key: 'todos', label: t('maintenanceAll') },
     { key: 'en_proceso', label: t('maintenanceInProgress') },
@@ -29,6 +39,8 @@ export default function MaintenanceScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+
+      {/* 9. Encabezado con titulo y boton para crear un nuevo mantenimiento */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.primary }]}>{t('maintenanceTitle')}</Text>
         <TouchableOpacity
@@ -39,6 +51,7 @@ export default function MaintenanceScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* 10. Fila de pestañas para filtrar por estado */}
       <View style={styles.tabsRow}>
         {tabs.map((tab) => {
           const isActive = filter === tab.key;
@@ -62,6 +75,7 @@ export default function MaintenanceScreen({ navigation }: any) {
         })}
       </View>
 
+      {/* 11. Lista de mantenimientos filtrados, o mensaje vacio si no hay ninguno */}
       {filteredMaintenances.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="build-outline" size={48} color={colors.textSecondary} />
