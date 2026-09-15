@@ -1,112 +1,206 @@
 // 1. Importaciones
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { useAppDispatch, useAppSelector } from '../../redux/hooks';
+import { crearMantenimiento, MaintenancePart, MaintenancePriority, MaintenanceType } from '../../redux/maintenanceSlice';
+import CustomInput from '../../components/CustomInput';
+import CustomButton from '../../components/CustomButton';
 
-// 2. Definimos los estados permitidos para un mantenimiento.
-export type MaintenanceStatus = 'en_proceso' | 'finalizado';
+export default function NewMaintenanceScreen({ navigation }: any) {
+  const { colors } = useTheme();
+  const { t } = useLanguage();
+  const dispatch = useAppDispatch();
+  const equipments = useAppSelector((state) => state.equipment.equipments);
 
-// 3. Definimos los tipos de mantenimiento disponibles.
-export type MaintenanceType = 'preventivo' | 'correctivo';
+  const [codigoEquipo, setCodigoEquipo] = useState('');
+  const [tecnico, setTecnico] = useState('');
+  const [tipo, setTipo] = useState<MaintenanceType>('preventivo');
+  const [prioridad, setPrioridad] = useState<MaintenancePriority>('media');
+  const [descripcion, setDescripcion] = useState('');
 
-// 4. Definimos las prioridades disponibles (mejora opcional, no obligatoria en el alcance inicial).
-export type MaintenancePriority = 'baja' | 'media' | 'alta';
+  const [parteNombre, setParteNombre] = useState('');
+  const [parteCantidad, setParteCantidad] = useState('');
+  const [repuestos, setRepuestos] = useState<MaintenancePart[]>([]);
 
-// 5. Define cada repuesto utilizado dentro de un mantenimiento.
-export type MaintenancePart = {
-  nombre: string;
-  cantidad: number;
-};
+  const agregarRepuesto = () => {
+    if (!parteNombre.trim() || !parteCantidad.trim()) return;
+    setRepuestos((prev) => [
+      ...prev,
+      { nombre: parteNombre.trim(), cantidad: Number(parteCantidad) },
+    ]);
+    setParteNombre('');
+    setParteCantidad('');
+  };
 
-// 6. Definimos la estructura que tendrá cada mantenimiento
-// almacenado dentro de Redux.
-export type Maintenance = {
-  id: string;
-  codigoEquipo: string;       // referencia al equipo (Equipment.codigo)
-  tecnico: string;
-  tipo: MaintenanceType;
-  prioridad?: MaintenancePriority;
-  descripcion: string;
-  repuestos: MaintenancePart[];
-  status: MaintenanceStatus;
-  fechaInicio: string;
-  fechaFinalizacion?: string;
-};
+  const quitarRepuesto = (index: number) => {
+    setRepuestos((prev) => prev.filter((_, i) => i !== index));
+  };
 
-// 7. Definimos la estructura del estado que manejará Redux para el módulo de mantenimiento.
-// maintenances será el arreglo que contendrá todos los mantenimientos registrados.
-type MaintenanceState = {
-  maintenances: Maintenance[];
-};
+  const handleGuardar = () => {
+    if (!codigoEquipo.trim() || !tecnico.trim() || !descripcion.trim()) {
+      Alert.alert(t('incompleteFieldsTitle'), t('incompleteFieldsMessage'));
+      return;
+    }
 
-// 8. Creamos el estado inicial del módulo de mantenimiento.
-// Incluimos dos mantenimientos de prueba para poder verificar visualmente el modulo.
-const initialState: MaintenanceState = {
-  maintenances: [
-    {
-      id: 'MT-0001',
-      codigoEquipo: 'EQ-0002',
-      tecnico: 'Carlos López',
-      tipo: 'correctivo',
-      prioridad: 'alta',
-      descripcion: 'Revisión de fuente de poder, equipo no enciende.',
-      repuestos: [{ nombre: 'Fuente de poder 500W', cantidad: 1 }],
-      status: 'en_proceso',
-      fechaInicio: new Date().toISOString(),
-    },
-    {
-      id: 'MT-0002',
-      codigoEquipo: 'EQ-0001',
-      tecnico: 'Josue Meza',
-      tipo: 'preventivo',
-      prioridad: 'baja',
-      descripcion: 'Limpieza interna y cambio de pasta térmica.',
-      repuestos: [{ nombre: 'Pasta térmica', cantidad: 1 }],
-      status: 'finalizado',
-      fechaInicio: new Date(Date.now() - 86400000).toISOString(),
-      fechaFinalizacion: new Date().toISOString(),
-    },
-  ],
-};
+    dispatch(
+      crearMantenimiento({
+        id: `MT-${Date.now()}`,
+        codigoEquipo: codigoEquipo.trim(),
+        tecnico: tecnico.trim(),
+        tipo,
+        prioridad,
+        descripcion: descripcion.trim(),
+        repuestos,
+        status: 'en_proceso',
+        fechaInicio: new Date().toISOString(),
+      })
+    );
 
-// 9. Creamos el Slice encargado de manejar
-// toda la información relacionada con los mantenimientos.
-const maintenanceSlice = createSlice({
+    navigation.goBack();
+  };
 
-  // 10. Nombre interno del Slice dentro de Redux.
-  name: 'maintenance',
+  return (
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: colors.primary }]}>{t('newMaintenanceTitle')}</Text>
+      </View>
 
-  // 11. Indicamos cuál será el estado inicial que utilizará este módulo.
-  initialState,
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('equipmentInformationTitle')}</Text>
 
-  // 12. Aquí agregamos las funciones que modificarán el estado de los mantenimientos.
-  reducers: {
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Código del equipo (EQ-xxxxx)</Text>
+        <CustomInput
+          type="text"
+          placeholder="EQ-0001"
+          value={codigoEquipo}
+          onChange={setCodigoEquipo}
+        />
 
-    // Crea un nuevo mantenimiento con estado en_proceso.
-    crearMantenimiento: (state, action: PayloadAction<Maintenance>) => {
-      // 13. action.payload contiene el mantenimiento que fue enviado desde la aplicación.
-      state.maintenances.push(action.payload);
-    },
+        <Text style={[styles.label, { color: colors.textSecondary }]}>{t('maintenanceTechnicianLabel')}</Text>
+        <CustomInput
+          type="text"
+          placeholder={t('maintenanceTechnicianLabel')}
+          value={tecnico}
+          onChange={setTecnico}
+        />
+      </View>
 
-    // Finaliza un mantenimiento existente.
-    finalizarMantenimiento: (
-      state,
-      action: PayloadAction<{ id: string; descripcion: string; repuestos: MaintenancePart[] }>
-    ) => {
-      // 14. Buscamos el mantenimiento utilizando su id único.
-      const mant = state.maintenances.find((m) => m.id === action.payload.id);
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Tipo y prioridad</Text>
 
-      // 15. Si encontramos el mantenimiento, actualizamos su estado y datos finales.
-      if (mant) {
-        mant.status = 'finalizado';
-        mant.descripcion = action.payload.descripcion;
-        mant.repuestos = action.payload.repuestos;
-        mant.fechaFinalizacion = new Date().toISOString();
-      }
-    },
-  },
+        <View style={styles.chipRow}>
+          {(['preventivo', 'correctivo'] as MaintenanceType[]).map((op) => (
+            <TouchableOpacity
+              key={op}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: tipo === op ? colors.primary : colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setTipo(op)}
+            >
+              <Text style={{ color: tipo === op ? 'white' : colors.text, fontSize: 12 }}>
+                {op === 'preventivo' ? t('maintenanceTypePreventive') : t('maintenanceTypeCorrective')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.chipRow}>
+          {(['baja', 'media', 'alta'] as MaintenancePriority[]).map((op) => (
+            <TouchableOpacity
+              key={op}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: prioridad === op ? colors.primary : colors.background,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setPrioridad(op)}
+            >
+              <Text style={{ color: prioridad === op ? 'white' : colors.text, fontSize: 12 }}>
+                {op === 'baja' ? t('maintenancePriorityLow') : op === 'media' ? t('maintenancePriorityMedium') : t('maintenancePriorityHigh')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Descripción del trabajo</Text>
+        <CustomInput
+          type="text"
+          placeholder={t('maintenanceDescriptionPlaceholder')}
+          value={descripcion}
+          onChange={setDescripcion}
+        />
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('maintenancePartsTitle')}</Text>
+
+        {repuestos.map((rep, index) => (
+          <View key={index} style={styles.partRow}>
+            <Text style={{ color: colors.text, flex: 1 }}>{rep.nombre} x{rep.cantidad}</Text>
+            <TouchableOpacity onPress={() => quitarRepuesto(index)}>
+              <Ionicons name="close-circle" size={20} color="red" />
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        <View style={styles.partInputRow}>
+          <View style={{ flex: 2 }}>
+            <CustomInput
+              type="text"
+              placeholder={t('maintenancePartNamePlaceholder')}
+              value={parteNombre}
+              onChange={setParteNombre}
+            />
+          </View>
+          <View style={{ flex: 1, marginLeft: 8 }}>
+            <CustomInput
+              type="phone"
+              placeholder={t('maintenancePartQuantityPlaceholder')}
+              value={parteCantidad}
+              onChange={setParteCantidad}
+            />
+          </View>
+        </View>
+
+        <CustomButton title={t('addPartButton')} onPress={agregarRepuesto} variant="secondary" />
+      </View>
+
+      <CustomButton title={t('saveMaintenanceButton')} onPress={handleGuardar} />
+      <View style={{ height: 30 }} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
+  title: { fontSize: 20, fontWeight: 'bold' },
+  section: { borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 16, gap: 8 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: 4 },
+  label: { fontSize: 12, marginBottom: -4 },
+  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  chip: { borderWidth: 1, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12 },
+  partRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  partInputRow: { flexDirection: 'row', marginBottom: 8 },
 });
-
-// 16. Exportamos las acciones para poder usarlas con dispatch en cualquier pantalla.
-export const { crearMantenimiento, finalizarMantenimiento } = maintenanceSlice.actions;
-
-// 17. Exportamos el reducer para registrarlo en store.ts.
-export default maintenanceSlice.reducer;
