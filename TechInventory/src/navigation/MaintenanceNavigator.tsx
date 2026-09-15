@@ -16,9 +16,9 @@ export default function MaintenanceNavigator() {
   return (
     // 4. Ocultamos el header nativo, ya que cada pantalla maneja su propio encabezado.
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      // 5. Pantalla principal: lista de mantenimientos con filtros por estado
+      {/* 5. Pantalla principal: lista de mantenimientos con filtros por estado */}
       <Stack.Screen name="MaintenanceScreen" component={MaintenanceScreen} />
-      // 6. Pantalla de formulario para registrar un nuevo mantenimiento 
+      {/* 6. Pantalla de formulario para registrar un nuevo mantenimiento */}
       <Stack.Screen name="NewMaintenanceScreen" component={NewMaintenanceScreen} />
     </Stack.Navigator>
   );
