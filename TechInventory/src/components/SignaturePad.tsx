@@ -68,12 +68,15 @@ const SignaturePad = forwardRef<SignaturePadRef, {}>((_props, ref) => {
   }));
 
   return (
+    // 12. collapsable={false} evita que Android "aplane" esta vista al optimizar el render,
+    // lo cual hacia que ViewShot capturara el lienzo en blanco.
     <View
+      collapsable={false}
       style={[styles.canvas, { backgroundColor: 'white', borderColor: colors.border }]}
       {...panResponder.panHandlers}
     >
       <Svg style={StyleSheet.absoluteFill}>
-        {/* 12. Dibujamos cada trazo ya completado */}
+        {/* 13. Dibujamos cada trazo ya completado */}
         {paths.map((points, index) => (
           <Path
             key={index}
@@ -85,7 +88,7 @@ const SignaturePad = forwardRef<SignaturePadRef, {}>((_props, ref) => {
             strokeLinejoin="round"
           />
         ))}
-        {/* 13. Dibujamos el trazo que se esta dibujando en este momento */}
+        {/* 14. Dibujamos el trazo que se esta dibujando en este momento */}
         <Path
           d={pointsToPath(currentPath.current)}
           stroke="#1E293B"
