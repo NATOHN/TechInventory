@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -48,7 +49,8 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
 
   // 7. Leemos los params: si viene maintenanceId, estamos editando/viendo uno existente.
   // Si viene codigoEquipo, estamos creando uno nuevo (flujo desde escaneo de QR).
-  const { maintenanceId, codigoEquipo: codigoEquipoParam } = route.params;
+  // Usamos ?? {} porque esta pantalla puede recibir params vacios si algo navega sin especificarlos.
+  const { maintenanceId, codigoEquipo: codigoEquipoParam } = route.params ?? {};
 
   // 8. Si estamos editando, buscamos el mantenimiento existente dentro de Redux.
   const maintenanceExistente = useAppSelector((state) =>
@@ -138,7 +140,8 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   });
 
   // 23. Guarda el mantenimiento dejandolo en_proceso, sin pasar a la firma.
-  // Si ya existia, actualiza sus datos en lugar de crear uno nuevo.
+  // Si ya existia, actualiza sus datos; si es nuevo, lo crea (esto es "Iniciar proceso").
+  // En ambos casos regresa a la lista de mantenimientos al terminar.
   const handleGuardar = () => {
     if (!validarCampos()) return;
 
@@ -190,223 +193,231 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
       : 'Editar mantenimiento'
     : t('newMaintenanceTitle');
 
+  // 26. Texto del boton de guardar: al crear un mantenimiento nuevo se llama "Iniciar proceso",
+  // al editar uno existente que sigue en_proceso se llama "Guardar".
+  const textoBotonGuardar = maintenanceExistente ? 'Guardar' : 'Iniciar proceso';
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    // 27. SafeAreaView evita que el contenido quede pegado a la barra de estado o los bordes del dispositivo.
+    <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
 
-      {/* 26. Encabezado con boton de regreso y titulo */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.primary }]}>{titulo}</Text>
-      </View>
-
-      {/* 27. Tarjeta con la informacion del equipo identificado */}
-      {equipo && (
-        <View style={[styles.equipoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Ionicons name="hardware-chip-outline" size={32} color={colors.textSecondary} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.equipoCodigo, { color: colors.text }]}>{equipo.codigo}</Text>
-            <Text style={[styles.equipoModelo, { color: colors.text }]}>{equipo.marca} {equipo.modelo}</Text>
-            <Text style={[styles.equipoSerie, { color: colors.textSecondary }]}>Serie: {equipo.serie}</Text>
-          </View>
-          <View style={styles.equipoBadge}>
-            <Text style={styles.equipoBadgeText}>{equipo.status === 'activo' ? 'Activo' : equipo.status}</Text>
-          </View>
+        {/* 28. Encabezado con boton de regreso y titulo */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: colors.primary }]}>{titulo}</Text>
         </View>
-      )}
 
-      {/* 28. Seccion: tipo de mantenimiento, mediante toggle */}
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>Tipo de mantenimiento</Text>
-      <View style={styles.toggleRow}>
-        {(['preventivo', 'correctivo'] as MaintenanceType[]).map((op) => (
-          <TouchableOpacity
-            key={op}
-            disabled={soloLectura}
-            style={[
-              styles.toggleOption,
-              {
-                backgroundColor: tipo === op ? colors.primary : colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => setTipo(op)}
-          >
-            <Text style={{ color: tipo === op ? 'white' : colors.text, fontWeight: '600' }}>
-              {op === 'preventivo' ? t('maintenanceTypePreventive') : t('maintenanceTypeCorrective')}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 29. Seccion: tecnico responsable */}
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceTechnicianLabel')}</Text>
-      <CustomInput
-        type="text"
-        placeholder={t('maintenanceTechnicianLabel')}
-        value={tecnico}
-        onChange={setTecnico}
-      />
-
-      {/* 30. Seccion: prioridad, mediante chips */}
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePriorityLabel')}</Text>
-      <View style={styles.chipRow}>
-        {(['baja', 'media', 'alta'] as MaintenancePriority[]).map((op) => (
-          <TouchableOpacity
-            key={op}
-            disabled={soloLectura}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: prioridad === op ? colors.primary : colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => setPrioridad(op)}
-          >
-            <Text style={{ color: prioridad === op ? 'white' : colors.text, fontSize: 12 }}>
-              {op === 'baja' ? t('maintenancePriorityLow') : op === 'media' ? t('maintenancePriorityMedium') : t('maintenancePriorityHigh')}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 31. Seccion: lista de verificacion con checkboxes y contador de progreso */}
-      <View style={styles.checklistHeader}>
-        <Text style={[styles.sectionLabel, { color: colors.text, marginBottom: 0 }]}>Lista de verificación</Text>
-        <Text style={[styles.checklistCount, { color: colors.textSecondary }]}>
-          {checklistCompletado}/{checklist.length}
-        </Text>
-      </View>
-      <View style={[styles.checklistBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {checklist.map((item, index) => (
-          <TouchableOpacity
-            key={item.label}
-            disabled={soloLectura}
-            style={styles.checklistRow}
-            onPress={() => toggleChecklistItem(index)}
-          >
-            <Ionicons
-              name={item.checked ? 'checkbox' : 'square-outline'}
-              size={22}
-              color={item.checked ? colors.primary : colors.textSecondary}
-            />
-            <Text style={[styles.checklistLabel, { color: colors.text }]}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 32. Seccion: repuestos utilizados, con agregado dinamico */}
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePartsTitle')}</Text>
-      <View style={[styles.partsBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        {repuestos.map((rep, index) => (
-          <View key={index} style={styles.partRow}>
-            <Text style={{ color: colors.text, flex: 1 }}>{rep.nombre} — {rep.cantidad} unidad(es)</Text>
-            {!soloLectura && (
-              <TouchableOpacity onPress={() => quitarRepuesto(index)}>
-                <Ionicons name="close-circle" size={20} color="red" />
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
-
-        {/* 33. El formulario para agregar un repuesto nuevo no se muestra en modo solo lectura */}
-        {!soloLectura && (
-          <>
-            <View style={styles.partInputRow}>
-              <View style={{ flex: 2 }}>
-                <CustomInput
-                  type="text"
-                  placeholder={t('maintenancePartNamePlaceholder')}
-                  value={parteNombre}
-                  onChange={setParteNombre}
-                />
-              </View>
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <CustomInput
-                  type="phone"
-                  placeholder={t('maintenancePartQuantityPlaceholder')}
-                  value={parteCantidad}
-                  onChange={setParteCantidad}
-                />
-              </View>
+        {/* 29. Tarjeta con la informacion del equipo identificado */}
+        {equipo && (
+          <View style={[styles.equipoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Ionicons name="hardware-chip-outline" size={32} color={colors.textSecondary} />
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.equipoCodigo, { color: colors.text }]}>{equipo.codigo}</Text>
+              <Text style={[styles.equipoModelo, { color: colors.text }]}>{equipo.marca} {equipo.modelo}</Text>
+              <Text style={[styles.equipoSerie, { color: colors.textSecondary }]}>Serie: {equipo.serie}</Text>
             </View>
-
-            <TouchableOpacity
-              style={[styles.addPartButton, { borderColor: colors.primary }]}
-              onPress={agregarRepuesto}
-            >
-              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('addPartButton')}</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-
-      {/* 34. Seccion: descripcion del trabajo realizado */}
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceDescriptionPlaceholder')}</Text>
-      <CustomInput
-        type="text"
-        placeholder={t('maintenanceDescriptionPlaceholder')}
-        value={descripcion}
-        onChange={setDescripcion}
-      />
-
-      {/* 35. Seccion: estado final del equipo, mediante chips */}
-      <Text style={[styles.sectionLabel, { color: colors.text }]}>Estado final</Text>
-      <View style={styles.chipRow}>
-        {ESTADOS_FINALES.map((op) => (
-          <TouchableOpacity
-            key={op}
-            disabled={soloLectura}
-            style={[
-              styles.chip,
-              {
-                backgroundColor: estadoFinal === op ? colors.primary : colors.surface,
-                borderColor: colors.border,
-              },
-            ]}
-            onPress={() => setEstadoFinal(op)}
-          >
-            <Text style={{ color: estadoFinal === op ? 'white' : colors.text, fontSize: 12 }}>{op}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* 36. Seccion: firma del tecnico, solo visible en modo solo lectura y si el mantenimiento tiene una firma guardada */}
-      {soloLectura && maintenanceExistente?.firmaBase64 && (
-        <View style={styles.firmaSection}>
-          <Text style={[styles.sectionLabel, { color: colors.text }]}>Firma del técnico</Text>
-          <View style={[styles.firmaBox, { borderColor: colors.border }]}>
-            <Image
-              source={{ uri: maintenanceExistente.firmaBase64 }}
-              style={styles.firmaImage}
-              resizeMode="contain"
-            />
+            <View style={styles.equipoBadge}>
+              <Text style={styles.equipoBadgeText}>{equipo.status === 'activo' ? 'Activo' : equipo.status}</Text>
+            </View>
           </View>
-          {maintenanceExistente.fechaFinalizacion && (
-            <Text style={[styles.firmaFecha, { color: colors.textSecondary }]}>
-              Firmado el {new Date(maintenanceExistente.fechaFinalizacion).toLocaleDateString()}
-            </Text>
+        )}
+
+        {/* 30. Seccion: tipo de mantenimiento, mediante toggle */}
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>Tipo de mantenimiento</Text>
+        <View style={styles.toggleRow}>
+          {(['preventivo', 'correctivo'] as MaintenanceType[]).map((op) => (
+            <TouchableOpacity
+              key={op}
+              disabled={soloLectura}
+              style={[
+                styles.toggleOption,
+                {
+                  backgroundColor: tipo === op ? colors.primary : colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setTipo(op)}
+            >
+              <Text style={{ color: tipo === op ? 'white' : colors.text, fontWeight: '600' }}>
+                {op === 'preventivo' ? t('maintenanceTypePreventive') : t('maintenanceTypeCorrective')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 31. Seccion: tecnico responsable */}
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceTechnicianLabel')}</Text>
+        <CustomInput
+          type="text"
+          placeholder={t('maintenanceTechnicianLabel')}
+          value={tecnico}
+          onChange={setTecnico}
+        />
+
+        {/* 32. Seccion: prioridad, mediante chips */}
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePriorityLabel')}</Text>
+        <View style={styles.chipRow}>
+          {(['baja', 'media', 'alta'] as MaintenancePriority[]).map((op) => (
+            <TouchableOpacity
+              key={op}
+              disabled={soloLectura}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: prioridad === op ? colors.primary : colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setPrioridad(op)}
+            >
+              <Text style={{ color: prioridad === op ? 'white' : colors.text, fontSize: 12 }}>
+                {op === 'baja' ? t('maintenancePriorityLow') : op === 'media' ? t('maintenancePriorityMedium') : t('maintenancePriorityHigh')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 33. Seccion: lista de verificacion con checkboxes y contador de progreso */}
+        <View style={styles.checklistHeader}>
+          <Text style={[styles.sectionLabel, { color: colors.text, marginBottom: 0 }]}>Lista de verificación</Text>
+          <Text style={[styles.checklistCount, { color: colors.textSecondary }]}>
+            {checklistCompletado}/{checklist.length}
+          </Text>
+        </View>
+        <View style={[styles.checklistBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {checklist.map((item, index) => (
+            <TouchableOpacity
+              key={item.label}
+              disabled={soloLectura}
+              style={styles.checklistRow}
+              onPress={() => toggleChecklistItem(index)}
+            >
+              <Ionicons
+                name={item.checked ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={item.checked ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.checklistLabel, { color: colors.text }]}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 34. Seccion: repuestos utilizados, con agregado dinamico */}
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePartsTitle')}</Text>
+        <View style={[styles.partsBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {repuestos.map((rep, index) => (
+            <View key={index} style={styles.partRow}>
+              <Text style={{ color: colors.text, flex: 1 }}>{rep.nombre} — {rep.cantidad} unidad(es)</Text>
+              {!soloLectura && (
+                <TouchableOpacity onPress={() => quitarRepuesto(index)}>
+                  <Ionicons name="close-circle" size={20} color="red" />
+                </TouchableOpacity>
+              )}
+            </View>
+          ))}
+
+          {/* 35. El formulario para agregar un repuesto nuevo no se muestra en modo solo lectura */}
+          {!soloLectura && (
+            <>
+              <View style={styles.partInputRow}>
+                <View style={{ flex: 2 }}>
+                  <CustomInput
+                    type="text"
+                    placeholder={t('maintenancePartNamePlaceholder')}
+                    value={parteNombre}
+                    onChange={setParteNombre}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <CustomInput
+                    type="phone"
+                    placeholder={t('maintenancePartQuantityPlaceholder')}
+                    value={parteCantidad}
+                    onChange={setParteCantidad}
+                  />
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.addPartButton, { borderColor: colors.primary }]}
+                onPress={agregarRepuesto}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+                <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('addPartButton')}</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
-      )}
 
-      {/* 37. Botones finales: solo se muestran cuando la pantalla permite editar */}
-      {!soloLectura && (
-        <>
-          <CustomButton title="Guardar" onPress={handleGuardar} variant="secondary" />
-          <CustomButton title={t('finalizeMaintenanceButton') || 'Continuar a firma'} onPress={handleContinuarFirma} />
-        </>
-      )}
+        {/* 36. Seccion: descripcion del trabajo realizado */}
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceDescriptionPlaceholder')}</Text>
+        <CustomInput
+          type="text"
+          placeholder={t('maintenanceDescriptionPlaceholder')}
+          value={descripcion}
+          onChange={setDescripcion}
+        />
 
-      <View style={{ height: 30 }} />
-    </ScrollView>
+        {/* 37. Seccion: estado final del equipo, mediante chips */}
+        <Text style={[styles.sectionLabel, { color: colors.text }]}>Estado final</Text>
+        <View style={styles.chipRow}>
+          {ESTADOS_FINALES.map((op) => (
+            <TouchableOpacity
+              key={op}
+              disabled={soloLectura}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: estadoFinal === op ? colors.primary : colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+              onPress={() => setEstadoFinal(op)}
+            >
+              <Text style={{ color: estadoFinal === op ? 'white' : colors.text, fontSize: 12 }}>{op}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 38. Seccion: firma del tecnico, solo visible en modo solo lectura y si el mantenimiento tiene una firma guardada */}
+        {soloLectura && maintenanceExistente?.firmaBase64 && (
+          <View style={styles.firmaSection}>
+            <Text style={[styles.sectionLabel, { color: colors.text }]}>Firma del técnico</Text>
+            <View style={[styles.firmaBox, { borderColor: colors.border }]}>
+              <Image
+                source={{ uri: maintenanceExistente.firmaBase64 }}
+                style={styles.firmaImage}
+                resizeMode="contain"
+              />
+            </View>
+            {maintenanceExistente.fechaFinalizacion && (
+              <Text style={[styles.firmaFecha, { color: colors.textSecondary }]}>
+                Firmado el {new Date(maintenanceExistente.fechaFinalizacion).toLocaleDateString()}
+              </Text>
+            )}
+          </View>
+        )}
+
+        {/* 39. Botones finales: solo se muestran cuando la pantalla permite editar */}
+        {!soloLectura && (
+          <>
+            <CustomButton title={textoBotonGuardar} onPress={handleGuardar} variant="secondary" />
+            <CustomButton title={t('finalizeMaintenanceButton') || 'Continuar a firma'} onPress={handleContinuarFirma} />
+          </>
+        )}
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  safeArea: { flex: 1 },
+  container: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 30 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
   title: { fontSize: 20, fontWeight: 'bold' },
   equipoCard: {
@@ -457,7 +468,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 4,
   },
-  // 38. Estilos de la seccion de firma en modo solo lectura.
   firmaSection: { marginTop: 8 },
   firmaBox: {
     borderWidth: 1,
