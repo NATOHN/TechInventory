@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -352,14 +353,23 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
           )}
         </View>
 
-        {/* 36. Seccion: descripcion del trabajo realizado */}
-        <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceDescriptionPlaceholder')}</Text>
-        <CustomInput
-          type="text"
-          placeholder={t('maintenanceDescriptionPlaceholder')}
-          value={descripcion}
-          onChange={setDescripcion}
-        />
+              {/* 36. Seccion: descripcion del trabajo realizado, tipo reporte con su propio scroll interno */}
+      <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceDescriptionPlaceholder')}</Text>
+      <TextInput
+        style={[
+          styles.descripcionBox,
+          { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text },
+        ]}
+        placeholder={t('maintenanceDescriptionPlaceholder')}
+        placeholderTextColor={colors.textSecondary}
+        value={descripcion}
+        onChangeText={setDescripcion}
+        editable={!soloLectura}
+        multiline
+        textAlignVertical="top"
+        scrollEnabled
+        blurOnSubmit={false}
+      />
 
         {/* 37. Seccion: estado final del equipo, mediante chips */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>Estado final</Text>
@@ -428,6 +438,15 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 12,
     marginBottom: 20,
+  },
+  // 40. Caja de descripcion tipo reporte: alto fijo, multilinea y con scroll interno propio,
+  // que no interfiere con el scroll general de la pantalla.
+  descripcionBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    height: 120,
+    fontSize: 14,
   },
   equipoCodigo: { fontSize: 15, fontWeight: '700' },
   equipoModelo: { fontSize: 13 },
