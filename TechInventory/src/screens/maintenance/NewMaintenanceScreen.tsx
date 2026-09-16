@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -14,6 +15,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import {
   crearMantenimiento,
+  actualizarMantenimiento,
   ChecklistItem,
   MaintenancePart,
   MaintenancePriority,
@@ -44,41 +46,59 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   // 6. Obtenemos dispatch para poder enviar acciones a Redux.
   const dispatch = useAppDispatch();
 
-  // 7. Leemos el codigo de equipo recibido desde la pantalla anterior.
-  const { codigoEquipo } = route.params;
+  // 7. Leemos los params: si viene maintenanceId, estamos editando/viendo uno existente.
+  // Si viene codigoEquipo, estamos creando uno nuevo (flujo desde escaneo de QR).
+  const { maintenanceId, codigoEquipo: codigoEquipoParam } = route.params;
 
-  // 8. Buscamos el equipo correspondiente dentro del inventario de Redux.
+  // 8. Si estamos editando, buscamos el mantenimiento existente dentro de Redux.
+  const maintenanceExistente = useAppSelector((state) =>
+    maintenanceId ? state.maintenance.maintenances.find((m) => m.id === maintenanceId) : undefined
+  );
+
+  // 9. El codigo real del equipo viene del mantenimiento existente (edicion) o de los params (creacion).
+  const codigoEquipo = maintenanceExistente?.codigoEquipo ?? codigoEquipoParam;
+
+  // 10. Buscamos el equipo correspondiente dentro del inventario de Redux.
   const equipments = useAppSelector((state) => state.equipment.equipments);
   const equipo = equipments.find((e) => e.codigo === codigoEquipo);
 
-  // 9. Estados locales del formulario: tipo y prioridad del mantenimiento.
-  const [tipo, setTipo] = useState<MaintenanceType>('preventivo');
-  const [prioridad, setPrioridad] = useState<MaintenancePriority>('media');
+  // 11. Si el mantenimiento ya esta finalizado, la pantalla se abre en modo solo lectura.
+  const soloLectura = maintenanceExistente?.status === 'finalizado';
 
-  // 10. Tecnico responsable (por ahora un campo simple de texto).
-  const [tecnico, setTecnico] = useState('');
+  // 12. Estados locales del formulario: tipo y prioridad del mantenimiento.
+  // Se precargan con los datos existentes cuando estamos editando.
+  const [tipo, setTipo] = useState<MaintenanceType>(maintenanceExistente?.tipo ?? 'preventivo');
+  const [prioridad, setPrioridad] = useState<MaintenancePriority>(maintenanceExistente?.prioridad ?? 'media');
 
-  // 11. Estado local de la lista de verificacion.
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(defaultChecklist());
+  // 13. Tecnico responsable (por ahora un campo simple de texto).
+  const [tecnico, setTecnico] = useState(maintenanceExistente?.tecnico ?? '');
 
-  // 12. Estados locales para agregar repuestos de forma dinamica.
+  // 14. Estado local de la lista de verificacion.
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(
+    maintenanceExistente?.checklist ?? defaultChecklist()
+  );
+
+  // 15. Estados locales para agregar repuestos de forma dinamica.
   const [parteNombre, setParteNombre] = useState('');
   const [parteCantidad, setParteCantidad] = useState('');
-  const [repuestos, setRepuestos] = useState<MaintenancePart[]>([]);
+  const [repuestos, setRepuestos] = useState<MaintenancePart[]>(maintenanceExistente?.repuestos ?? []);
 
-  // 13. Estado local de la descripcion del trabajo y el estado final del equipo.
-  const [descripcion, setDescripcion] = useState('');
-  const [estadoFinal, setEstadoFinal] = useState('');
+  // 16. Estado local de la descripcion del trabajo y el estado final del equipo.
+  const [descripcion, setDescripcion] = useState(maintenanceExistente?.descripcion ?? '');
+  const [estadoFinal, setEstadoFinal] = useState(maintenanceExistente?.estadoFinal ?? '');
 
-  // 14. Alterna el valor checked de un elemento de la lista de verificacion.
+  // 17. Alterna el valor checked de un elemento de la lista de verificacion.
+  // No hace nada si la pantalla esta en modo solo lectura.
   const toggleChecklistItem = (index: number) => {
+    if (soloLectura) return;
     setChecklist((prev) =>
       prev.map((item, i) => (i === index ? { ...item, checked: !item.checked } : item))
     );
   };
 
-  // 15. Agrega un repuesto nuevo al arreglo local, si los campos son validos.
+  // 18. Agrega un repuesto nuevo al arreglo local, si los campos son validos.
   const agregarRepuesto = () => {
+    if (soloLectura) return;
     if (!parteNombre.trim() || !parteCantidad.trim()) return;
     setRepuestos((prev) => [
       ...prev,
@@ -88,15 +108,16 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
     setParteCantidad('');
   };
 
-  // 16. Elimina un repuesto del arreglo local segun su posicion.
+  // 19. Elimina un repuesto del arreglo local segun su posicion.
   const quitarRepuesto = (index: number) => {
+    if (soloLectura) return;
     setRepuestos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // 17. Calcula cuantos elementos del checklist estan marcados, para mostrar el progreso.
+  // 20. Calcula cuantos elementos del checklist estan marcados, para mostrar el progreso.
   const checklistCompletado = checklist.filter((item) => item.checked).length;
 
-  // 18. Valida los campos obligatorios antes de continuar.
+  // 21. Valida los campos obligatorios antes de continuar.
   const validarCampos = () => {
     if (!tecnico.trim() || !descripcion.trim()) {
       Alert.alert(t('incompleteFieldsTitle'), t('incompleteFieldsMessage'));
@@ -105,67 +126,82 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
     return true;
   };
 
-  // 19. Guarda el mantenimiento dejandolo en_proceso, sin pasar a la firma.
+  // 22. Construye el objeto de datos editables, comun para crear y actualizar.
+  const construirDatosFormulario = () => ({
+    tecnico: tecnico.trim(),
+    tipo,
+    prioridad,
+    checklist,
+    repuestos,
+    descripcion: descripcion.trim(),
+    estadoFinal: estadoFinal || undefined,
+  });
+
+  // 23. Guarda el mantenimiento dejandolo en_proceso, sin pasar a la firma.
+  // Si ya existia, actualiza sus datos en lugar de crear uno nuevo.
   const handleGuardar = () => {
     if (!validarCampos()) return;
 
-    dispatch(
-      crearMantenimiento({
-        id: `MT-${Date.now()}`,
-        codigoEquipo,
-        tecnico: tecnico.trim(),
-        tipo,
-        prioridad,
-        checklist,
-        repuestos,
-        descripcion: descripcion.trim(),
-        estadoFinal: estadoFinal || undefined,
-        status: 'en_proceso',
-        fechaInicio: new Date().toISOString(),
-      })
-    );
+    if (maintenanceExistente) {
+      dispatch(actualizarMantenimiento({ id: maintenanceExistente.id, ...construirDatosFormulario() }));
+    } else {
+      dispatch(
+        crearMantenimiento({
+          id: `MT-${Date.now()}`,
+          codigoEquipo,
+          ...construirDatosFormulario(),
+          status: 'en_proceso',
+          fechaInicio: new Date().toISOString(),
+        })
+      );
+    }
 
     navigation.navigate('MaintenanceScreen');
   };
 
-  // 20. Valida los campos y navega a la pantalla de firma, sin guardar como finalizado todavia.
+  // 24. Valida los campos y navega a la pantalla de firma, sin marcar el mantenimiento como finalizado todavia.
+  // Si ya existia, primero guarda los cambios editados antes de ir a firmar.
   const handleContinuarFirma = () => {
     if (!validarCampos()) return;
 
-    // 21. Creamos el mantenimiento en_proceso primero, y navegamos a la firma con su id.
-    const id = `MT-${Date.now()}`;
+    const id = maintenanceExistente ? maintenanceExistente.id : `MT-${Date.now()}`;
 
-    dispatch(
-      crearMantenimiento({
-        id,
-        codigoEquipo,
-        tecnico: tecnico.trim(),
-        tipo,
-        prioridad,
-        checklist,
-        repuestos,
-        descripcion: descripcion.trim(),
-        estadoFinal: estadoFinal || undefined,
-        status: 'en_proceso',
-        fechaInicio: new Date().toISOString(),
-      })
-    );
+    if (maintenanceExistente) {
+      dispatch(actualizarMantenimiento({ id, ...construirDatosFormulario() }));
+    } else {
+      dispatch(
+        crearMantenimiento({
+          id,
+          codigoEquipo,
+          ...construirDatosFormulario(),
+          status: 'en_proceso',
+          fechaInicio: new Date().toISOString(),
+        })
+      );
+    }
 
     navigation.navigate('SignatureScreen', { maintenanceId: id });
   };
 
+  // 25. Titulo dinamico segun el modo en el que se abrio la pantalla.
+  const titulo = maintenanceExistente
+    ? soloLectura
+      ? 'Detalle de mantenimiento'
+      : 'Editar mantenimiento'
+    : t('newMaintenanceTitle');
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
 
-      {/* 22. Encabezado con boton de regreso y titulo */}
+      {/* 26. Encabezado con boton de regreso y titulo */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.title, { color: colors.primary }]}>{t('newMaintenanceTitle')}</Text>
+        <Text style={[styles.title, { color: colors.primary }]}>{titulo}</Text>
       </View>
 
-      {/* 23. Tarjeta con la informacion del equipo identificado */}
+      {/* 27. Tarjeta con la informacion del equipo identificado */}
       {equipo && (
         <View style={[styles.equipoCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="hardware-chip-outline" size={32} color={colors.textSecondary} />
@@ -180,12 +216,13 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         </View>
       )}
 
-      {/* 24. Seccion: tipo de mantenimiento, mediante toggle */}
+      {/* 28. Seccion: tipo de mantenimiento, mediante toggle */}
       <Text style={[styles.sectionLabel, { color: colors.text }]}>Tipo de mantenimiento</Text>
       <View style={styles.toggleRow}>
         {(['preventivo', 'correctivo'] as MaintenanceType[]).map((op) => (
           <TouchableOpacity
             key={op}
+            disabled={soloLectura}
             style={[
               styles.toggleOption,
               {
@@ -202,7 +239,7 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         ))}
       </View>
 
-      {/* 25. Seccion: tecnico responsable */}
+      {/* 29. Seccion: tecnico responsable */}
       <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceTechnicianLabel')}</Text>
       <CustomInput
         type="text"
@@ -211,12 +248,13 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         onChange={setTecnico}
       />
 
-      {/* 26. Seccion: prioridad, mediante chips */}
+      {/* 30. Seccion: prioridad, mediante chips */}
       <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePriorityLabel')}</Text>
       <View style={styles.chipRow}>
         {(['baja', 'media', 'alta'] as MaintenancePriority[]).map((op) => (
           <TouchableOpacity
             key={op}
+            disabled={soloLectura}
             style={[
               styles.chip,
               {
@@ -233,7 +271,7 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         ))}
       </View>
 
-      {/* 27. Seccion: lista de verificacion con checkboxes y contador de progreso */}
+      {/* 31. Seccion: lista de verificacion con checkboxes y contador de progreso */}
       <View style={styles.checklistHeader}>
         <Text style={[styles.sectionLabel, { color: colors.text, marginBottom: 0 }]}>Lista de verificación</Text>
         <Text style={[styles.checklistCount, { color: colors.textSecondary }]}>
@@ -244,6 +282,7 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         {checklist.map((item, index) => (
           <TouchableOpacity
             key={item.label}
+            disabled={soloLectura}
             style={styles.checklistRow}
             onPress={() => toggleChecklistItem(index)}
           >
@@ -257,47 +296,54 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         ))}
       </View>
 
-      {/* 28. Seccion: repuestos utilizados, con agregado dinamico */}
+      {/* 32. Seccion: repuestos utilizados, con agregado dinamico */}
       <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePartsTitle')}</Text>
       <View style={[styles.partsBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         {repuestos.map((rep, index) => (
           <View key={index} style={styles.partRow}>
             <Text style={{ color: colors.text, flex: 1 }}>{rep.nombre} — {rep.cantidad} unidad(es)</Text>
-            <TouchableOpacity onPress={() => quitarRepuesto(index)}>
-              <Ionicons name="close-circle" size={20} color="red" />
-            </TouchableOpacity>
+            {!soloLectura && (
+              <TouchableOpacity onPress={() => quitarRepuesto(index)}>
+                <Ionicons name="close-circle" size={20} color="red" />
+              </TouchableOpacity>
+            )}
           </View>
         ))}
 
-        <View style={styles.partInputRow}>
-          <View style={{ flex: 2 }}>
-            <CustomInput
-              type="text"
-              placeholder={t('maintenancePartNamePlaceholder')}
-              value={parteNombre}
-              onChange={setParteNombre}
-            />
-          </View>
-          <View style={{ flex: 1, marginLeft: 8 }}>
-            <CustomInput
-              type="phone"
-              placeholder={t('maintenancePartQuantityPlaceholder')}
-              value={parteCantidad}
-              onChange={setParteCantidad}
-            />
-          </View>
-        </View>
+        {/* 33. El formulario para agregar un repuesto nuevo no se muestra en modo solo lectura */}
+        {!soloLectura && (
+          <>
+            <View style={styles.partInputRow}>
+              <View style={{ flex: 2 }}>
+                <CustomInput
+                  type="text"
+                  placeholder={t('maintenancePartNamePlaceholder')}
+                  value={parteNombre}
+                  onChange={setParteNombre}
+                />
+              </View>
+              <View style={{ flex: 1, marginLeft: 8 }}>
+                <CustomInput
+                  type="phone"
+                  placeholder={t('maintenancePartQuantityPlaceholder')}
+                  value={parteCantidad}
+                  onChange={setParteCantidad}
+                />
+              </View>
+            </View>
 
-        <TouchableOpacity
-          style={[styles.addPartButton, { borderColor: colors.primary }]}
-          onPress={agregarRepuesto}
-        >
-          <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('addPartButton')}</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.addPartButton, { borderColor: colors.primary }]}
+              onPress={agregarRepuesto}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>{t('addPartButton')}</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
-      {/* 29. Seccion: descripcion del trabajo realizado */}
+      {/* 34. Seccion: descripcion del trabajo realizado */}
       <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceDescriptionPlaceholder')}</Text>
       <CustomInput
         type="text"
@@ -306,12 +352,13 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         onChange={setDescripcion}
       />
 
-      {/* 30. Seccion: estado final del equipo, mediante chips */}
+      {/* 35. Seccion: estado final del equipo, mediante chips */}
       <Text style={[styles.sectionLabel, { color: colors.text }]}>Estado final</Text>
       <View style={styles.chipRow}>
         {ESTADOS_FINALES.map((op) => (
           <TouchableOpacity
             key={op}
+            disabled={soloLectura}
             style={[
               styles.chip,
               {
@@ -326,9 +373,32 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
         ))}
       </View>
 
-      {/* 31. Botones finales: guardar en proceso, o continuar directo a la firma */}
-      <CustomButton title="Guardar" onPress={handleGuardar} variant="secondary" />
-      <CustomButton title={t('finalizeMaintenanceButton') || 'Continuar a firma'} onPress={handleContinuarFirma} />
+      {/* 36. Seccion: firma del tecnico, solo visible en modo solo lectura y si el mantenimiento tiene una firma guardada */}
+      {soloLectura && maintenanceExistente?.firmaBase64 && (
+        <View style={styles.firmaSection}>
+          <Text style={[styles.sectionLabel, { color: colors.text }]}>Firma del técnico</Text>
+          <View style={[styles.firmaBox, { borderColor: colors.border }]}>
+            <Image
+              source={{ uri: maintenanceExistente.firmaBase64 }}
+              style={styles.firmaImage}
+              resizeMode="contain"
+            />
+          </View>
+          {maintenanceExistente.fechaFinalizacion && (
+            <Text style={[styles.firmaFecha, { color: colors.textSecondary }]}>
+              Firmado el {new Date(maintenanceExistente.fechaFinalizacion).toLocaleDateString()}
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* 37. Botones finales: solo se muestran cuando la pantalla permite editar */}
+      {!soloLectura && (
+        <>
+          <CustomButton title="Guardar" onPress={handleGuardar} variant="secondary" />
+          <CustomButton title={t('finalizeMaintenanceButton') || 'Continuar a firma'} onPress={handleContinuarFirma} />
+        </>
+      )}
 
       <View style={{ height: 30 }} />
     </ScrollView>
@@ -387,4 +457,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 4,
   },
+  // 38. Estilos de la seccion de firma en modo solo lectura.
+  firmaSection: { marginTop: 8 },
+  firmaBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  firmaImage: { width: '100%', height: 140 },
+  firmaFecha: { fontSize: 12, marginTop: 6, textAlign: 'center' },
 });
