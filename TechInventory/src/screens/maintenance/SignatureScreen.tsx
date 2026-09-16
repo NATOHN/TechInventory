@@ -44,7 +44,11 @@ export default function SignatureScreen({ navigation, route }: any) {
     try {
       setGuardando(true);
 
-      // 10. Capturamos el lienzo actual como una imagen en formato data-uri (base64 embebido).
+      // 10. Pequeña espera para asegurar que el ultimo trazo ya se renderizo
+      // en la vista nativa antes de capturarla (evita capturas en blanco en Android).
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // 11. Capturamos el lienzo actual como una imagen en formato data-uri (base64 embebido).
       const uri = await viewShotRef.current?.capture?.();
 
       if (!uri) {
@@ -53,10 +57,10 @@ export default function SignatureScreen({ navigation, route }: any) {
         return;
       }
 
-      // 11. Finalizamos el mantenimiento, guardando la firma capturada.
+      // 12. Finalizamos el mantenimiento, guardando la firma capturada.
       dispatch(finalizarMantenimiento({ id: maintenanceId, firmaBase64: uri }));
 
-      // 12. Regresamos a la lista de mantenimientos, ya con el registro finalizado.
+      // 13. Regresamos a la lista de mantenimientos, ya con el registro finalizado.
       navigation.navigate('MaintenanceScreen');
     } catch (error) {
       Alert.alert('Error', 'Ocurrió un problema al guardar la firma.');
@@ -65,11 +69,11 @@ export default function SignatureScreen({ navigation, route }: any) {
   };
 
   return (
-    // 13. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
+    // 14. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
 
-        {/* 14. Encabezado con boton de regreso y titulo */}
+        {/* 15. Encabezado con boton de regreso y titulo */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -81,7 +85,7 @@ export default function SignatureScreen({ navigation, route }: any) {
           Firma dentro del recuadro para confirmar que el mantenimiento fue realizado.
         </Text>
 
-        {/* 15. ViewShot envuelve el lienzo para poder capturarlo como imagen al confirmar */}
+        {/* 16. ViewShot envuelve el lienzo para poder capturarlo como imagen al confirmar */}
         <ViewShot
           ref={viewShotRef}
           options={{ format: 'png', quality: 0.9, result: 'data-uri' }}
@@ -90,7 +94,7 @@ export default function SignatureScreen({ navigation, route }: any) {
           <SignaturePad ref={signatureRef} />
         </ViewShot>
 
-        {/* 16. Botones de accion: limpiar el lienzo o confirmar la firma */}
+        {/* 17. Botones de accion: limpiar el lienzo o confirmar la firma */}
         <View style={styles.buttonsRow}>
           <TouchableOpacity
             style={[styles.clearButton, { borderColor: colors.border }]}
