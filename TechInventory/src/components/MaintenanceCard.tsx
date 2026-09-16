@@ -1,5 +1,5 @@
 // 1. Importaciones
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -11,7 +11,7 @@ type Props = {
   onPress?: () => void;
 };
 
-export default function MaintenanceCard({ maintenance }: Props) {
+export default function MaintenanceCard({ maintenance, onPress }: Props) {
   // 3. Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
 
@@ -38,9 +38,14 @@ export default function MaintenanceCard({ maintenance }: Props) {
     maintenance.prioridad === 'baja' ? t('maintenancePriorityLow') : '';
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+    // 8. Toda la tarjeta es tocable: al presionarla, se abre el detalle/edicion del mantenimiento.
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+    >
 
-      {/* 8. Fila superior: codigo del equipo + insignia de estado */}
+      {/* 9. Fila superior: codigo del equipo + insignia de estado */}
       <View style={styles.headerRow}>
         <Text style={[styles.codigo, { color: colors.primary }]}>{maintenance.codigoEquipo}</Text>
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
@@ -48,12 +53,12 @@ export default function MaintenanceCard({ maintenance }: Props) {
         </View>
       </View>
 
-      {/* 9. Descripcion del trabajo realizado o en curso */}
+      {/* 10. Descripcion del trabajo realizado o en curso */}
       <Text style={[styles.descripcion, { color: colors.text }]} numberOfLines={2}>
         {maintenance.descripcion}
       </Text>
 
-      {/* 10. Fila inferior: tecnico, tipo de mantenimiento y prioridad */}
+      {/* 11. Fila inferior: tecnico, tipo de mantenimiento y prioridad */}
       <View style={styles.footerRow}>
         <View style={styles.infoItem}>
           <Ionicons name="person" size={14} color={colors.textSecondary} />
@@ -80,7 +85,7 @@ export default function MaintenanceCard({ maintenance }: Props) {
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
