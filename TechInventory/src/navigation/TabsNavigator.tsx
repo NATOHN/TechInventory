@@ -36,10 +36,12 @@ export default function TabsNavigator() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
-        tabBarIcon: ({ color, size }) => {
+         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
           if (route.name === 'Inicio') iconName = 'home';
           else if (route.name === 'Equipos') iconName = 'cube';
+          // 1. Ícono de llave inglesa (construct = llave + destornillador cruzados) para Mantenimiento.
+          else if (route.name === 'Mantenimiento') iconName = 'construct';
           else if (route.name === 'Perfil') iconName = 'person';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
