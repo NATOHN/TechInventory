@@ -344,75 +344,28 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                             </Text>
                         </View>
 
-                    ) : (
+                    ) : (eventosTodos.map((evento, index) => {
 
-                        eventosTodos.map((evento, index) => {
-
-                            // Eventos relacionados con baja o reactivación.
-                            if (evento.tipo === "estado") {
-                                const cambioEstado = evento.data;
-
-                                return (
-                                    <View key={`estado-${evento.fecha}-${index}`} style={styles.timelineItem}>
-                                        <View style={styles.timelineIndicator}>
-                                            <View
-                                                style={[
-                                                    styles.timelineIcon,
-                                                    {
-                                                        backgroundColor:
-                                                            cambioEstado.estadoNuevo === "baja"
-                                                                ? "#DC2626"
-                                                                : "#16A34A",
-                                                    },
-                                                ]}
-                                            >
-                                                <Ionicons
-                                                    name={cambioEstado.estadoNuevo === "baja" ? "archive-outline" : "refresh-outline"}
-                                                    size={20}
-                                                    color="#FFFFFF"
-                                                />
-                                            </View>
-
-                                            {index < eventosTodos.length - 1 && (
-                                                <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
-                                            )}
-                                        </View>
-
-                                        <View style={styles.timelineContent}>
-                                            <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
-                                                {formatHistoryDate(cambioEstado.fecha)}
-                                            </Text>
-
-                                            <Text style={[styles.timelineTitle, { color: colors.text }]}>
-                                                {cambioEstado.estadoNuevo === "baja"
-                                                    ? t("equipmentDeactivatedEvent")
-                                                    : t("equipmentReactivatedEvent")}
-                                            </Text>
-
-                                            <Text style={[styles.timelineLocation, { color: colors.textSecondary }]}>
-                                                {t("statusChangeLabel")}:{" "}
-                                                <Text style={{ color: colors.text, fontWeight: "600" }}>
-                                                    {getStatusLabel(cambioEstado.estadoAnterior)} → {getStatusLabel(cambioEstado.estadoNuevo)}
-                                                </Text>
-                                            </Text>
-                                        </View>
-                                    </View>
-                                );
-                            }
-
-                            // Por ahora los demás eventos corresponden a ubicación o responsable.
-                            const movimiento = evento.data;
-
-                            const cambioUbicacion =
-                                movimiento.sucursalAnterior !== movimiento.sucursalNueva ||
-                                movimiento.departamentoAnterior !== movimiento.departamentoNuevo;
+                        // Eventos relacionados con baja o reactivación.
+                        if (evento.tipo === "estado") {
+                            const cambioEstado = evento.data;
 
                             return (
-                                <View key={`ubicacion-${evento.fecha}-${index}`} style={styles.timelineItem}>
+                                <View key={`estado-${evento.fecha}-${index}`} style={styles.timelineItem}>
                                     <View style={styles.timelineIndicator}>
-                                        <View style={[styles.timelineIcon, { backgroundColor: colors.primary }]}>
+                                        <View
+                                            style={[
+                                                styles.timelineIcon,
+                                                {
+                                                    backgroundColor:
+                                                        cambioEstado.estadoNuevo === "baja"
+                                                            ? "#DC2626"
+                                                            : "#16A34A",
+                                                },
+                                            ]}
+                                        >
                                             <Ionicons
-                                                name={cambioUbicacion ? "location-outline" : "person-outline"}
+                                                name={cambioEstado.estadoNuevo === "baja" ? "archive-outline" : "refresh-outline"}
                                                 size={20}
                                                 color="#FFFFFF"
                                             />
@@ -425,51 +378,121 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
 
                                     <View style={styles.timelineContent}>
                                         <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
-                                            {formatHistoryDate(movimiento.fecha)}
+                                            {formatHistoryDate(cambioEstado.fecha)}
                                         </Text>
 
                                         <Text style={[styles.timelineTitle, { color: colors.text }]}>
-                                            {cambioUbicacion
-                                                ? t("locationChangeEvent")
-                                                : t("responsibleChangeEvent")}
+                                            {cambioEstado.estadoNuevo === "baja"
+                                                ? t("equipmentDeactivatedEvent")
+                                                : t("equipmentReactivatedEvent")}
                                         </Text>
 
-                                        {cambioUbicacion && (
-                                            <>
-                                                <Text style={[styles.timelineLocation, { color: colors.text }]}>
-                                                    <Text style={styles.timelineLocationLabel}>{t("historyFromLabel")}:</Text>{" "}
-                                                    {movimiento.sucursalAnterior} • {movimiento.departamentoAnterior}
-                                                </Text>
+                                        <Text style={[styles.timelineLocation, { color: colors.textSecondary }]}>
+                                            {t("statusChangeLabel")}:{" "}
+                                            <Text style={{ color: colors.text, fontWeight: "600" }}>
+                                                {getStatusLabel(cambioEstado.estadoAnterior)} → {getStatusLabel(cambioEstado.estadoNuevo)}
+                                            </Text>
+                                        </Text>
 
-                                                <Text style={[styles.timelineLocation, { color: colors.text }]}>
-                                                    <Text style={styles.timelineLocationLabel}>{t("historyToLabel")}:</Text>{" "}
-                                                    {movimiento.sucursalNueva} • {movimiento.departamentoNuevo}
-                                                </Text>
-                                            </>
-                                        )}
-
-                                        {!cambioUbicacion && (
-                                            <Text style={[styles.timelineLocation, { color: colors.textSecondary }]}>
-                                                {movimiento.sucursalNueva} • {movimiento.departamentoNuevo}
+                                        {/* Información opcional del evento de estado. */}
+                                        {cambioEstado.motivo && (
+                                            <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
+                                                {t("reasonLabel")}: <Text style={{ color: colors.text }}>{cambioEstado.motivo}</Text>
                                             </Text>
                                         )}
 
-                                        {movimiento.empleadoAnterior !== undefined &&
-                                            movimiento.empleadoNuevo !== undefined &&
-                                            movimiento.empleadoAnterior !== movimiento.empleadoNuevo && (
-                                                <Text style={[styles.timelineEmployeeChange, { color: colors.textSecondary }]}>
-                                                    {t("assignedLabel")}:{" "}
-                                                    {movimiento.empleadoAnterior || t("unassigned")}
-                                                    {"  →  "}
-                                                    <Text style={{ color: colors.text, fontWeight: "600" }}>
-                                                        {movimiento.empleadoNuevo || t("unassigned")}
-                                                    </Text>
-                                                </Text>
-                                            )}
+                                        {cambioEstado.realizadoPorNombre && (
+                                            <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
+                                                {t("performedByLabel")}: <Text style={{ color: colors.text, fontWeight: "600" }}>{cambioEstado.realizadoPorNombre}</Text>
+                                            </Text>
+                                        )}
+
                                     </View>
                                 </View>
                             );
-                        })
+                        }
+
+                        // Por ahora los demás eventos corresponden a ubicación o responsable.
+                        const movimiento = evento.data;
+
+                        const cambioUbicacion =
+                            movimiento.sucursalAnterior !== movimiento.sucursalNueva ||
+                            movimiento.departamentoAnterior !== movimiento.departamentoNuevo;
+
+                        return (
+                            <View key={`ubicacion-${evento.fecha}-${index}`} style={styles.timelineItem}>
+                                <View style={styles.timelineIndicator}>
+                                    <View style={[styles.timelineIcon, { backgroundColor: colors.primary }]}>
+                                        <Ionicons
+                                            name={cambioUbicacion ? "location-outline" : "person-outline"}
+                                            size={20}
+                                            color="#FFFFFF"
+                                        />
+                                    </View>
+
+                                    {index < eventosTodos.length - 1 && (
+                                        <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+                                    )}
+                                </View>
+
+                                <View style={styles.timelineContent}>
+                                    <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
+                                        {formatHistoryDate(movimiento.fecha)}
+                                    </Text>
+
+                                    <Text style={[styles.timelineTitle, { color: colors.text }]}>
+                                        {cambioUbicacion
+                                            ? t("locationChangeEvent")
+                                            : t("responsibleChangeEvent")}
+                                    </Text>
+
+                                    {cambioUbicacion && (
+                                        <>
+                                            <Text style={[styles.timelineLocation, { color: colors.text }]}>
+                                                <Text style={styles.timelineLocationLabel}>{t("historyFromLabel")}:</Text>{" "}
+                                                {movimiento.sucursalAnterior} • {movimiento.departamentoAnterior}
+                                            </Text>
+
+                                            <Text style={[styles.timelineLocation, { color: colors.text }]}>
+                                                <Text style={styles.timelineLocationLabel}>{t("historyToLabel")}:</Text>{" "}
+                                                {movimiento.sucursalNueva} • {movimiento.departamentoNuevo}
+                                            </Text>
+                                        </>
+                                    )}
+
+                                    {!cambioUbicacion && (
+                                        <Text style={[styles.timelineLocation, { color: colors.textSecondary }]}>
+                                            {movimiento.sucursalNueva} • {movimiento.departamentoNuevo}
+                                        </Text>
+                                    )}
+
+                                    {movimiento.empleadoAnterior !== undefined &&
+                                        movimiento.empleadoNuevo !== undefined &&
+                                        movimiento.empleadoAnterior !== movimiento.empleadoNuevo && (
+                                            <Text style={[styles.timelineEmployeeChange, { color: colors.textSecondary }]}>
+                                                {t("assignedLabel")}:{" "}
+                                                {movimiento.empleadoAnterior || t("unassigned")}
+                                                {"  →  "}
+                                                <Text style={{ color: colors.text, fontWeight: "600" }}>
+                                                    {movimiento.empleadoNuevo || t("unassigned")}
+                                                </Text>
+                                            </Text>
+                                        )}
+
+                                    {/* Mostramos quién realizó la reasignación cuando exista información del usuario. */}
+                                    {movimiento.realizadoPorNombre && (
+                                        <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
+                                            {t("performedByLabel")}:{" "}
+                                            <Text style={{ color: colors.text, fontWeight: "600" }}>
+                                                {movimiento.realizadoPorNombre}
+                                            </Text>
+                                        </Text>
+                                    )}
+
+                                </View>
+                            </View>
+                        );
+                    })
 
                     )
 
@@ -558,6 +581,21 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                         {getStatusLabel(evento.estadoAnterior)} → {getStatusLabel(evento.estadoNuevo)}
                                     </Text>
                                 </Text>
+
+                                {/* Mostramos el motivo únicamente cuando el evento lo contiene. */}
+                                {evento.motivo && (
+                                    <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
+                                        {t("reasonLabel")}: <Text style={{ color: colors.text }}>{evento.motivo}</Text>
+                                    </Text>
+                                )}
+
+                                {/* Mostramos quién realizó la acción cuando exista información del usuario. */}
+                                {evento.realizadoPorNombre && (
+                                    <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
+                                        {t("performedByLabel")}: <Text style={{ color: colors.text, fontWeight: "600" }}>{evento.realizadoPorNombre}</Text>
+                                    </Text>
+                                )}
+
                             </View>
                         </View>
                     ))) : mostrarUbicaciones && historialUbicaciones.length === 0 ? (
@@ -695,6 +733,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                                 </Text>
                                             </Text>
                                         )}
+                                        
 
                                 </View>
 
@@ -918,6 +957,13 @@ const styles = StyleSheet.create({
         fontSize: 13,
         lineHeight: 20,
         marginTop: 7,
+    },
+
+    // Información adicional del evento, como motivo y usuario responsable.
+    timelineExtraInfo: {
+        fontSize: 13,
+        lineHeight: 19,
+        marginTop: 5,
     },
 });
 

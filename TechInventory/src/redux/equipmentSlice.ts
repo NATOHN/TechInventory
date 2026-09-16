@@ -31,6 +31,12 @@ export type EquipmentLocationHistory = {
     departamentoNuevo: string;
     empleadoAnterior?: string;
     empleadoNuevo?: string;
+    
+    // Usuario del sistema que realizó la reasignación.
+    // Se completará cuando integremos los usuarios desde Supabase.
+    realizadoPorId?: string;
+    realizadoPorNombre?: string;
+
     fecha: string;
 };
 

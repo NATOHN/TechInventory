@@ -199,6 +199,10 @@ export const translations = {
         equipmentReactivatedEvent: "Equipo reactivado",
         statusChangeLabel: "Estado",
 
+        //40. Datos adicionales mostrados en los eventos del historial del equipo.
+        performedByLabel: "Realizado por",
+        reasonLabel: "Motivo",
+
 
     },
 
@@ -399,6 +403,10 @@ export const translations = {
         equipmentDeactivatedEvent: "Equipment deactivated",
         equipmentReactivatedEvent: "Equipment reactivated",
         statusChangeLabel: "Status",
+
+        //40. Additional information displayed in equipment history events.
+        performedByLabel: "Performed by",
+        reasonLabel: "Reason",
 
 
     },
