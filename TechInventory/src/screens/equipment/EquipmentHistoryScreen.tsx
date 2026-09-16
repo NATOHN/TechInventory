@@ -376,7 +376,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                         )}
                                     </View>
 
-                                    <View style={styles.timelineContent}>
+                                    <View style={[styles.timelineContent, { borderBottomColor: colors.border }]}>
                                         <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
                                             {formatHistoryDate(cambioEstado.fecha)}
                                         </Text>
@@ -435,7 +435,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                     )}
                                 </View>
 
-                                <View style={styles.timelineContent}>
+                                <View style={[styles.timelineContent, { borderBottomColor: colors.border }]}>
                                     <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
                                         {formatHistoryDate(movimiento.fecha)}
                                     </Text>
@@ -564,7 +564,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                             </View>
 
                             {/* Información del cambio de estado. */}
-                            <View style={styles.timelineContent}>
+                            <View style={[styles.timelineContent, { borderBottomColor: colors.border }]}>
                                 <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
                                     {formatHistoryDate(evento.fecha)}
                                 </Text>
@@ -666,7 +666,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
 
 
                                 {/* Información correspondiente al movimiento. */}
-                                <View style={styles.timelineContent}>
+                                <View style={[styles.timelineContent, { borderBottomColor: colors.border }]}>
 
                                     {/* Fecha del evento. */}
                                     <Text
@@ -733,7 +733,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                                 </Text>
                                             </Text>
                                         )}
-                                        
+
 
                                 </View>
 
@@ -879,15 +879,15 @@ const styles = StyleSheet.create({
 
     // Columna izquierda que contiene el icono y la línea.
     timelineIndicator: {
-        width: 46,
+        width: 42,
         alignItems: "center",
     },
 
     // Círculo principal de cada evento.
     timelineIcon: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
         alignItems: "center",
         justifyContent: "center",
         zIndex: 2,
@@ -903,8 +903,10 @@ const styles = StyleSheet.create({
     // Información situada al lado derecho de la línea.
     timelineContent: {
         flex: 1,
-        paddingLeft: 10,
-        paddingBottom: 20,
+        paddingLeft: 8,
+        paddingBottom: 12,
+        marginBottom: 4,
+        borderBottomWidth: 1,
     },
 
     timelineDate: {
