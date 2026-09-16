@@ -108,10 +108,14 @@ const maintenanceSlice = createSlice({
     },
 
     // Actualiza los datos de un mantenimiento que sigue en_proceso, sin finalizarlo.
+    // Ahora tambien permite editar tecnico, tipo y prioridad (antes solo checklist/repuestos/descripcion/estadoFinal).
     actualizarMantenimiento: (
       state,
       action: PayloadAction<{
         id: string;
+        tecnico: string;
+        tipo: MaintenanceType;
+        prioridad?: MaintenancePriority;
         checklist: ChecklistItem[];
         repuestos: MaintenancePart[];
         descripcion: string;
@@ -121,8 +125,11 @@ const maintenanceSlice = createSlice({
       // 16. Buscamos el mantenimiento utilizando su id único.
       const mant = state.maintenances.find((m) => m.id === action.payload.id);
 
-      // 17. Si encontramos el mantenimiento, actualizamos su informacion sin cambiar el estado.
+      // 17. Si encontramos el mantenimiento, actualizamos toda su informacion editable sin cambiar el estado.
       if (mant) {
+        mant.tecnico = action.payload.tecnico;
+        mant.tipo = action.payload.tipo;
+        mant.prioridad = action.payload.prioridad;
         mant.checklist = action.payload.checklist;
         mant.repuestos = action.payload.repuestos;
         mant.descripcion = action.payload.descripcion;
