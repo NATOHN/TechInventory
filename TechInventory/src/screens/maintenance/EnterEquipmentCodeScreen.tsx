@@ -50,25 +50,35 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
       return;
     }
 
-    // 11. Navegamos al formulario de nuevo mantenimiento, enviando el codigo del equipo.
+    // 11. Los equipos dados de baja no pueden recibir mantenimiento.
+    if (equipo.status === 'baja') {
+      Alert.alert(
+        'Equipo dado de baja',
+        `El equipo ${equipo.codigo} está dado de baja y no puede recibir mantenimiento.`,
+        [{ text: 'OK', onPress: () => setScanned(false) }]
+      );
+      return;
+    }
+
+    // 12. Navegamos al formulario de nuevo mantenimiento, enviando el codigo del equipo.
     navigation.navigate('NewMaintenanceScreen', { codigoEquipo: equipo.codigo });
   };
 
-  // 12. Callback que recibe expo-camera cada vez que detecta un codigo QR.
+  // 13. Callback que recibe expo-camera cada vez que detecta un codigo QR.
   const handleBarcodeScanned = (result: BarcodeScanningResult) => {
     if (scanned) return;
     setScanned(true);
     buscarYContinuar(result.data);
   };
 
-  // 13. Envia el codigo escrito a mano hacia la misma validacion que usa la camara.
+  // 14. Envia el codigo escrito a mano hacia la misma validacion que usa la camara.
   const handleContinuarManual = () => {
     buscarYContinuar(codigo);
   };
 
   return (
     <View style={styles.container}>
-      {/* 14. Encabezado con boton de regreso, titulo y linterna */}
+      {/* 15. Encabezado con boton de regreso, titulo y linterna */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -80,7 +90,7 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
       </View>
 
       {manualMode ? (
-        // 15. Formulario para ingresar el codigo manualmente.
+        // 16. Formulario para ingresar el codigo manualmente.
         <View style={[styles.manualBody, { backgroundColor: colors.background }]}>
           <Ionicons
             name="keypad-outline"
@@ -102,7 +112,7 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       ) : !permission?.granted ? (
-        // 16. Mensaje mostrado mientras no se tenga permiso de camara.
+        // 17. Mensaje mostrado mientras no se tenga permiso de camara.
         <View style={styles.permissionBody}>
           <Ionicons name="camera-outline" size={48} color="#fff" style={{ marginBottom: 16 }} />
           <Text style={styles.permissionText}>
@@ -114,7 +124,7 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       ) : (
-        // 17. Vista de la camara con el recuadro guia para centrar el QR.
+        // 18. Vista de la camara con el recuadro guia para centrar el QR.
         <View style={styles.cameraContainer}>
           <CameraView
             style={styles.camera}
@@ -124,13 +134,13 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
             onBarcodeScanned={handleBarcodeScanned}
           />
 
-          {/* 18. Recuadro guia superpuesto sobre la camara */}
+          {/* 19. Recuadro guia superpuesto sobre la camara */}
           <View style={styles.overlay}>
             <View style={styles.scanFrame} />
             <Text style={styles.overlayText}>Centra el código QR dentro del recuadro</Text>
           </View>
 
-          {/* 19. Boton para cambiar a ingreso manual */}
+          {/* 20. Boton para cambiar a ingreso manual */}
           <TouchableOpacity style={styles.manualButton} onPress={() => setManualMode(true)}>
             <Ionicons name="keypad-outline" size={18} color="#fff" />
             <Text style={styles.manualButtonText}>Ingresar código manualmente</Text>
