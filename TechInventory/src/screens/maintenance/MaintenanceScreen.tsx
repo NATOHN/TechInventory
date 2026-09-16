@@ -85,17 +85,26 @@ export default function MaintenanceScreen({ navigation }: any) {
             <FlatList
               data={filteredMaintenances}
               keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <MaintenanceCard maintenance={item} />}
+              renderItem={({ item }) => (
+                // 12. Al tocar la tarjeta, abrimos el mismo formulario en modo edicion/solo lectura,
+                // enviando el id del mantenimiento existente en lugar de un codigoEquipo nuevo.
+                <MaintenanceCard
+                  maintenance={item}
+                  onPress={() => navigation.navigate('NewMaintenanceScreen', { maintenanceId: item.id })}
+                />
+              )}
               contentContainerStyle={styles.list}
             />
           )}
         </View>
 
-        {/* 12. Pie fijo con el boton principal, mismo estilo que en Equipos */}
+        {/* 13. Pie fijo con el boton principal, mismo estilo que en Equipos */}
         <View style={[styles.footer, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
           <TouchableOpacity
             style={[styles.bottomRegisterButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('NewMaintenanceScreen')}
+            // 14. El registro de un mantenimiento nuevo siempre pasa primero por identificar el equipo
+            // (escaneando el QR o ingresando el codigo manualmente), nunca abre el formulario directo.
+            onPress={() => navigation.navigate('EnterEquipmentCodeScreen')}
           >
             <Ionicons name="add" size={22} color={colors.background} />
             <Text style={[styles.bottomRegisterButtonText, { color: colors.background }]}>
@@ -136,7 +145,7 @@ const styles = StyleSheet.create({
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 60 },
   emptyTitle: { fontSize: 16, fontWeight: '600' },
   emptyMessage: { fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
-  // 13. Pie inferior fijo, mismo patron que EquipmentListScreen.
+  // 15. Pie inferior fijo, mismo patron que EquipmentListScreen.
   footer: {
     paddingHorizontal: 16,
     paddingTop: 8,
