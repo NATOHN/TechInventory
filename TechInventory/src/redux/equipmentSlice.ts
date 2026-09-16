@@ -6,6 +6,23 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 // 2. Definimos los estados permitidos para un equipo.
 export type EquipmentStatus = | 'activo' | 'taller' | 'baja';
 
+// Representa un cambio de estado realizado sobre un equipo.
+// Se utilizará en el historial para registrar bajas, reactivaciones
+// y posteriormente cambios generados desde Mantenimiento.
+export type EquipmentStatusHistory = {
+    estadoAnterior: EquipmentStatus;
+    estadoNuevo: EquipmentStatus;
+    fecha: string;
+
+    // Indica desde qué proceso se realizó el cambio.
+    origen: "detalle" | "mantenimiento";
+
+    // Estos datos quedan preparados para futuras integraciones.
+    motivo?: string;
+    realizadoPorId?: string;
+    realizadoPorNombre?: string;
+};
+
 // 12. Define cada movimiento de ubicación realizado sobre un equipo.
 export type EquipmentLocationHistory = {
     sucursalAnterior: string;
@@ -32,6 +49,8 @@ export type Equipment = {
     foto: ImageSourcePropType;
     // Guarda los cambios de ubicación realizados al equipo.
     historialUbicaciones?: EquipmentLocationHistory[];
+    // Guarda todos los cambios de estado realizados sobre el equipo.
+    historialEstados?: EquipmentStatusHistory[];
     // Guarda temporalmente el estado que tenía el equipo antes de ser dado de baja.
     estadoAntesDeBaja?: 'activo' | 'taller';
 };
@@ -153,26 +172,40 @@ const equipmentSlice = createSlice({
             }
         },
 
-        // Permite dar de baja un equipo sin eliminarlo del inventario.
+        // Da de baja un equipo y registra el cambio dentro del historial de estados.
         darDeBajaEquipo: (state, action: PayloadAction<{ codigo: string }>) => {
             // Buscamos el equipo utilizando su código único.
             const equipo = state.equipments.find(
                 (equipo) => equipo.codigo === action.payload.codigo
             );
-            // Si encontramos el equipo, cambiamos únicamente su estado.
+
+            // Solo registramos la baja si el equipo existe
+            // y todavía no se encuentra dado de baja.
             if (equipo && equipo.status !== "baja") {
-                //Guardamos el estado actual para poder restaurarlo posteriormente.
-                equipo.estadoAntesDeBaja = equipo.status;
-                // Cambiamos el estado actual a baja.
+
+                // Guardamos el estado anterior para poder recuperarlo
+                // posteriormente si el equipo es reactivado.
+                const estadoAnterior = equipo.status;
+                equipo.estadoAntesDeBaja = estadoAnterior;
+
+                // Creamos el historial si el equipo todavía no posee uno.
+                equipo.historialEstados ??= [];
+
+                // Registramos el evento antes de modificar el estado actual.
+                equipo.historialEstados.push({
+                    estadoAnterior,
+                    estadoNuevo: "baja",
+                    fecha: new Date().toISOString(),
+                    origen: "detalle",
+                });
+
+                // Finalmente actualizamos el estado del equipo.
                 equipo.status = "baja";
             }
         },
 
         // Permite reactivar un equipo que anteriormente fue dado de baja.
-        reactivarEquipo: (
-            state,
-            action: PayloadAction<{ codigo: string }>
-        ) => {
+        reactivarEquipo: (state,action: PayloadAction<{ codigo: string }>) => {
 
             // Buscamos el equipo mediante su código único.
             const equipo = state.equipments.find(
@@ -181,11 +214,24 @@ const equipmentSlice = createSlice({
 
             if (equipo && equipo.status === "baja") {
 
-                // Restauramos el estado que poseía antes de la baja.
-                // Si es un registro antiguo sin estado previo, vuelve a activo.
-                equipo.status = equipo.estadoAntesDeBaja ?? "activo";
+                // Recuperamos el estado que tenía antes de darse de baja.
+                const nuevoEstado = equipo.estadoAntesDeBaja ?? "activo";
 
-                // Ya no necesitamos conservar temporalmente el estado anterior.
+                // Creamos el historial si todavía no existe.
+                equipo.historialEstados ??= [];
+
+                // Registramos la reactivación.
+                equipo.historialEstados.push({
+                    estadoAnterior: "baja",
+                    estadoNuevo: nuevoEstado,
+                    fecha: new Date().toISOString(),
+                    origen: "detalle",
+                });
+
+                // Restauramos el estado que poseía antes de la baja.
+                equipo.status = nuevoEstado;
+
+                 // Limpiamos el estado temporal.
                 delete equipo.estadoAntesDeBaja;
             }
         },
@@ -221,13 +267,13 @@ const equipmentSlice = createSlice({
     },
 });
 
-export const { 
-    agregarEquipo, 
-    cargarEquipos, 
-    cambiarUbicacionEquipo, 
-    darDeBajaEquipo, 
+export const {
+    agregarEquipo,
+    cargarEquipos,
+    cambiarUbicacionEquipo,
+    darDeBajaEquipo,
     reactivarEquipo,
-    actualizarDatosEquipo 
+    actualizarDatosEquipo
 } = equipmentSlice.actions;
 
 export default equipmentSlice.reducer;

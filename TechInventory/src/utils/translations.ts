@@ -175,6 +175,30 @@ export const translations = {
         duplicateSerialTitle: "Serie duplicada",
         duplicateSerialMessage: "Ya existe un equipo registrado con este número de serie.",
 
+        // 35. Filtros utilizados en el historial del equipo.
+        maintenanceHistoryFilter: "Mantenimientos",
+        locationsHistoryFilter: "Ubicaciones",
+
+        //36. Tipos de eventos mostrados dentro del historial.
+        locationChangeEvent: "Cambio de ubicación",
+        responsibleChangeEvent: "Cambio de responsable",
+
+        // 37. Textos compactos utilizados en la línea de tiempo.
+        historyFromLabel: "De",
+        historyToLabel: "A",
+
+        //38. Estados vacíos de los filtros del historial.
+        noMaintenanceHistoryTitle: "Sin mantenimientos registrados",
+        noMaintenanceHistoryMessage: "Los mantenimientos realizados a este equipo aparecerán aquí.",
+
+        noStatusHistoryTitle: "Sin cambios de estado registrados",
+        noStatusHistoryMessage: "Las bajas y reactivaciones realizadas a este equipo aparecerán aquí.",
+
+        //39. Textos utilizados para mostrar cambios de estado en el historial del equipo.
+        equipmentDeactivatedEvent: "Equipo dado de baja",
+        equipmentReactivatedEvent: "Equipo reactivado",
+        statusChangeLabel: "Estado",
+
 
     },
 
@@ -350,6 +374,31 @@ export const translations = {
         // 34. Validation to prevent duplicate serial numbers.
         duplicateSerialTitle: "Duplicate serial number",
         duplicateSerialMessage: "A device with this serial number is already registered.",
+
+
+        // 35. Filters used in the equipment history.
+        maintenanceHistoryFilter: "Maintenance",
+        locationsHistoryFilter: "Locations",
+
+        //36. Event types displayed in the equipment history.
+        locationChangeEvent: "Location change",
+        responsibleChangeEvent: "Responsible person change",
+
+        // 37. Compact labels used in the history timeline.
+        historyFromLabel: "From",
+        historyToLabel: "To",
+
+        // 38. Empty states for history filters.
+        noMaintenanceHistoryTitle: "No maintenance records",
+        noMaintenanceHistoryMessage: "Maintenance performed on this equipment will appear here.",
+
+        noStatusHistoryTitle: "No status changes recorded",
+        noStatusHistoryMessage: "Deactivations and reactivations for this equipment will appear here.",
+
+        //39.x Texts used to display status changes in the equipment history.
+        equipmentDeactivatedEvent: "Equipment deactivated",
+        equipmentReactivatedEvent: "Equipment reactivated",
+        statusChangeLabel: "Status",
 
 
     },
