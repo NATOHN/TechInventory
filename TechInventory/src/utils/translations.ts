@@ -171,6 +171,7 @@ export const translations = {
         editEquipmentSuccessTitle: "Equipo actualizado",
         editEquipmentSuccessMessage: "La información del equipo se actualizó correctamente.",
 
+
         //34. Validación para evitar números de serie repetidos.
         duplicateSerialTitle: "Serie duplicada",
         duplicateSerialMessage: "Ya existe un equipo registrado con este número de serie.",
@@ -202,6 +203,32 @@ export const translations = {
         //40. Datos adicionales mostrados en los eventos del historial del equipo.
         performedByLabel: "Realizado por",
         reasonLabel: "Motivo",
+
+        //Textos utilizados en el modulo de mantenimiento.
+        maintenanceTab: "Mantenimiento",
+        maintenanceTitle: "Mantenimiento",
+        maintenanceAll: "Todos",
+        maintenanceInProgress: "En proceso",
+        maintenanceCompleted: "Finalizado",
+        maintenanceTechnicianLabel: "Técnico",
+        maintenanceTypePreventive: "Preventivo",
+        maintenanceTypeCorrective: "Correctivo",
+        maintenancePriorityLabel: "Prioridad",
+        maintenancePriorityLow: "Baja",
+        maintenancePriorityMedium: "Media",
+        maintenancePriorityHigh: "Alta",
+        newMaintenanceButton: "Nuevo mantenimiento",
+        newMaintenanceTitle: "Nuevo mantenimiento",
+        maintenanceDescriptionPlaceholder: "Descripción del trabajo",
+        maintenancePartsTitle: "Repuestos utilizados",
+        maintenancePartNamePlaceholder: "Nombre del repuesto",
+        maintenancePartQuantityPlaceholder: "Cantidad",
+        addPartButton: "Agregar repuesto",
+        saveMaintenanceButton: "Guardar mantenimiento",
+        finalizeMaintenanceButton: "Finalizar mantenimiento",
+        noMaintenancesTitle: "Sin mantenimientos",
+        noMaintenancesMessage: "No hay mantenimientos registrados en esta categoria.",
+
 
 
     },
@@ -375,6 +402,7 @@ export const translations = {
         editEquipmentSuccessTitle: "Equipment updated",
         editEquipmentSuccessMessage: "The equipment information was updated successfully.",
 
+
         // 34. Validation to prevent duplicate serial numbers.
         duplicateSerialTitle: "Duplicate serial number",
         duplicateSerialMessage: "A device with this serial number is already registered.",
@@ -407,6 +435,32 @@ export const translations = {
         //40. Additional information displayed in equipment history events.
         performedByLabel: "Performed by",
         reasonLabel: "Reason",
+
+
+        //Texts used in the maintenance module.
+        maintenanceTab: "Maintenance",
+        maintenanceTitle: "Maintenance",
+        maintenanceAll: "All",
+        maintenanceInProgress: "In progress",
+        maintenanceCompleted: "Completed",
+        maintenanceTechnicianLabel: "Technician",
+        maintenanceTypePreventive: "Preventive",
+        maintenanceTypeCorrective: "Corrective",
+        maintenancePriorityLabel: "Priority",
+        maintenancePriorityLow: "Low",
+        maintenancePriorityMedium: "Medium",
+        maintenancePriorityHigh: "High",
+        newMaintenanceButton: "New maintenance",
+        newMaintenanceTitle: "New maintenance",
+        maintenanceDescriptionPlaceholder: "Work description",
+        maintenancePartsTitle: "Parts used",
+        maintenancePartNamePlaceholder: "Part name",
+        maintenancePartQuantityPlaceholder: "Quantity",
+        addPartButton: "Add part",
+        saveMaintenanceButton: "Save maintenance",
+        finalizeMaintenanceButton: "Finalize maintenance",
+        noMaintenancesTitle: "No maintenance records",
+        noMaintenancesMessage: "There are no maintenance records in this category.",
 
 
     },
