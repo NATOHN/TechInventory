@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
 import HomeTab from '../screens/tabs/HomeTab';
-import ProfileTab from '../screens/tabs/ProfileTab';
+import ProfileNavigator from './ProfileNavigator';
 import EquipmentNavigator from './EquipmentNavigator';
 import MaintenanceNavigator from './MaintenanceNavigator';
 import { useTheme } from '../context/ThemeContext';
@@ -72,12 +72,12 @@ export default function TabsNavigator() {
       />
       
       <Tab.Screen
-        name='Perfil'
-        component={ProfileTab}
-        options={{
-          tabBarLabel: t("profileTab"),
-        }}
-      />
+  name='Perfil'
+  component={ProfileNavigator}
+  options={{
+    tabBarLabel: t("profileTab"),
+  }}
+/>
 
     </Tab.Navigator>
   );
