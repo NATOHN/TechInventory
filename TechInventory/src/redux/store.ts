@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 
 import equipmentReducer, { cargarEquipos} from './equipmentSlice';
 import maintenanceReducer from './maintenanceSlice';
+import usersReducer from './usersSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 
 
@@ -13,6 +14,8 @@ export const store = configureStore({
         equipment: equipmentReducer,
         // 4. La propiedad maintenance representará todo el estado manejado por maintenanceSlice.
         maintenance: maintenanceReducer,
+        // 5. La propiedad users representará todo el estado manejado por usersSlice.
+        users: usersReducer,
     },
 });
 
