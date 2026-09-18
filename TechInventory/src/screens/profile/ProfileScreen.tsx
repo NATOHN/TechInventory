@@ -1,5 +1,5 @@
 // 1. Importaciones
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,11 +35,28 @@ export default function ProfileScreen({ navigation }: any) {
     // 7. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.background }]}>
-        <Ionicons name="person-circle" size={100} color={colors.primary} />
-        <Text style={[styles.name, { color: colors.text }]}>{t('profile')}</Text>
+
+        {/* 7a. Foto de perfil real del usuario, con fallback al icono por defecto si no tiene */}
+        {currentUser?.fotoPerfil ? (
+          <Image source={{ uri: currentUser.fotoPerfil }} style={styles.avatarImage} />
+        ) : (
+          <Ionicons name="person-circle" size={100} color={colors.primary} />
+        )}
+
+        <Text style={[styles.name, { color: colors.text }]}>{currentUser?.nombreCompleto ?? t('profile')}</Text>
         <Text style={[styles.role, { color: colors.textSecondary }]}>{rolTexto}</Text>
 
-        {/* 8. Acceso a la pantalla de Configuracion, donde viven administracion, aplicacion y datos */}
+        {/* 8. Acceso a Mi Perfil: editar foto, nombre, correo y contraseña */}
+        <TouchableOpacity
+          style={[styles.configRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => navigation.navigate('EditProfileScreen')}
+        >
+          <Ionicons name="person-outline" size={22} color={colors.primary} />
+          <Text style={[styles.configText, { color: colors.text }]}>Mi Perfil</Text>
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
+
+        {/* 9. Acceso a la pantalla de Configuracion, donde viven administracion, aplicacion y datos */}
         <TouchableOpacity
           style={[styles.configRow, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={() => navigation.navigate('ConfigurationScreen')}
@@ -58,6 +75,7 @@ export default function ProfileScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  avatarImage: { width: 100, height: 100, borderRadius: 50 },
   name: { fontSize: 24, fontWeight: 'bold', marginTop: 12 },
   role: { fontSize: 14, marginBottom: 32 },
   configRow: {
