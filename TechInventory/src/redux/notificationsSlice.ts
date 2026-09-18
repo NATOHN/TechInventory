@@ -19,7 +19,8 @@ type NotificationsState = {
   notifications: AppNotification[];
 };
 
-// 5. Estado inicial: sin notificaciones todavia.
+// 5. Estado inicial: sin notificaciones todavia. Se reemplaza al cargar desde AsyncStorage
+// cuando la app inicia, si existen notificaciones guardadas de una sesion anterior.
 const initialState: NotificationsState = {
   notifications: [],
 };
@@ -40,11 +41,16 @@ const notificationsSlice = createSlice({
         n.leida = true;
       });
     },
+
+    // 9. Reemplaza el arreglo completo con las notificaciones recuperadas de AsyncStorage.
+    cargarNotificaciones: (state, action: PayloadAction<AppNotification[]>) => {
+      state.notifications = action.payload;
+    },
   },
 });
 
-// 9. Exportamos las acciones para poder usarlas con dispatch en cualquier pantalla.
-export const { agregarNotificacion, marcarTodasLeidas } = notificationsSlice.actions;
+// 10. Exportamos las acciones para poder usarlas con dispatch en cualquier pantalla.
+export const { agregarNotificacion, marcarTodasLeidas, cargarNotificaciones } = notificationsSlice.actions;
 
-// 10. Exportamos el reducer para registrarlo en store.ts.
+// 11. Exportamos el reducer para registrarlo en store.ts.
 export default notificationsSlice.reducer;
