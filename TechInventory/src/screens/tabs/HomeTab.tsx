@@ -1,10 +1,12 @@
 // 1. Importaciones
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useAppSelector } from '../../redux/hooks';
+import { useAppDispatch, useAppSelector } from '../../redux/hooks';
+import { marcarTodasLeidas } from '../../redux/notificationsSlice';
 
 // 2. Actividad de ejemplo. El proyecto todavia no tiene un registro real de eventos
 // (crear un log de actividad requeriria un slice nuevo, como activityLogSlice, que
@@ -40,27 +42,43 @@ export default function HomeTab({ navigation }: any) {
   // 4. Obtenemos la función t desde LanguageContext para mostrar los textos traducidos.
   const { t } = useLanguage();
 
-  // 5. Leemos los equipos y mantenimientos reales desde Redux para calcular los contadores.
+  // 5. Obtenemos dispatch para poder enviar acciones a Redux.
+  const dispatch = useAppDispatch();
+
+  // 6. Leemos los equipos y mantenimientos reales desde Redux para calcular los contadores.
   const equipments = useAppSelector((state) => state.equipment.equipments);
   const maintenances = useAppSelector((state) => state.maintenance.maintenances);
 
-  // 6. Buscamos al usuario que representa la sesion actual, para mostrar su nombre.
+  // 7. Leemos las notificaciones reales, generadas al iniciar y finalizar mantenimientos.
+  const notifications = useAppSelector((state) => state.notifications.notifications);
+  const notificacionesNoLeidas = notifications.filter((n) => !n.leida).length;
+
+  // 8. Buscamos al usuario que representa la sesion actual, para mostrar su nombre.
   const currentUser = useAppSelector((state) =>
     state.users.users.find((u) => u.id === state.users.currentUserId)
   );
 
-  // 7. Calculamos los contadores principales a partir de los equipos reales.
+  // 9. Controla si el modal de notificaciones esta visible.
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  // 10. Calculamos los contadores principales a partir de los equipos reales.
   const totalEquipos = equipments.length;
   const totalActivos = equipments.filter((e) => e.status === 'activo').length;
   const totalTaller = equipments.filter((e) => e.status === 'taller').length;
   const totalPendientes = maintenances.filter((m) => m.status === 'en_proceso').length;
 
+  // 11. Abre el modal de notificaciones y marca todas como leidas, quitando el indicador rojo.
+  const handleAbrirNotificaciones = () => {
+    setShowNotifications(true);
+    dispatch(marcarTodasLeidas());
+  };
+
   return (
-    // 8. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
+    // 12. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
 
-        {/* 9. Encabezado con saludo personalizado y campana de notificaciones */}
+        {/* 13. Encabezado con saludo personalizado y campana de notificaciones */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Ionicons name="person-circle" size={40} color={colors.primary} />
@@ -74,14 +92,14 @@ export default function HomeTab({ navigation }: any) {
             </View>
           </View>
 
-          {/* 10. Campana de notificaciones, aun sin funcionalidad real (ver Configuracion) */}
-          <View>
+          {/* 14. Campana de notificaciones: abre el modal con el historial real de eventos */}
+          <TouchableOpacity onPress={handleAbrirNotificaciones}>
             <Ionicons name="notifications-outline" size={24} color={colors.text} />
-            <View style={styles.notificationDot} />
-          </View>
+            {notificacionesNoLeidas > 0 && <View style={styles.notificationDot} />}
+          </TouchableOpacity>
         </View>
 
-        {/* 11. Tarjetas de resumen: total de equipos, activos, en taller y mantenimientos pendientes */}
+        {/* 15. Tarjetas de resumen: total de equipos, activos, en taller y mantenimientos pendientes */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: '#DBEAFE' }]}>
             <Ionicons name="server" size={20} color="#1E3A8A" />
@@ -108,20 +126,20 @@ export default function HomeTab({ navigation }: any) {
           </View>
         </View>
 
-        {/* 12. Seccion: acciones rapidas */}
+        {/* 16. Seccion: acciones rapidas */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Acciones rápidas</Text>
         <View style={styles.actionsRow}>
 
-          {/* 13. Escanear QR reutiliza el mismo escaner que usa el flujo de mantenimiento */}
+          {/* 17. Mantenimiento lleva directo a la pestaña de Mantenimiento (lista de mantenimientos) */}
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={() => navigation.navigate('Mantenimiento', { screen: 'EnterEquipmentCodeScreen' })}
+            onPress={() => navigation.navigate('Mantenimiento')}
           >
-            <Ionicons name="qr-code-outline" size={26} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Escanear QR</Text>
+            <Ionicons name="list-outline" size={26} color={colors.primary} />
+            <Text style={[styles.actionText, { color: colors.text }]}>Mantenimiento</Text>
           </TouchableOpacity>
 
-          {/* 14. Registrar equipo navega a la pantalla de registro dentro del Stack de Equipos */}
+          {/* 18. Registrar equipo navega a la pantalla de registro dentro del Stack de Equipos */}
           <TouchableOpacity
             style={[styles.actionButtonPrimary, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('Equipos', { screen: 'RegisterEquipment' })}
@@ -130,7 +148,7 @@ export default function HomeTab({ navigation }: any) {
             <Text style={styles.actionTextPrimary}>Registrar{'\n'}equipo</Text>
           </TouchableOpacity>
 
-          {/* 15. Nuevo mantenimiento navega al mismo escaner que arranca el flujo de mantenimiento */}
+          {/* 19. Nuevo mantenimiento navega al escaner que arranca el flujo de mantenimiento */}
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={() => navigation.navigate('Mantenimiento', { screen: 'EnterEquipmentCodeScreen' })}
@@ -140,7 +158,7 @@ export default function HomeTab({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* 16. Seccion: actividad reciente */}
+        {/* 20. Seccion: actividad reciente */}
         <View style={styles.activityHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>Actividad reciente</Text>
           <TouchableOpacity>
@@ -163,6 +181,48 @@ export default function HomeTab({ navigation }: any) {
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      {/* 21. Modal con el historial real de notificaciones (inicio y fin de mantenimientos) */}
+      <Modal visible={showNotifications} transparent animationType="slide" onRequestClose={() => setShowNotifications(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.cardBackground ?? colors.surface }]}>
+
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Notificaciones</Text>
+              <TouchableOpacity onPress={() => setShowNotifications(false)}>
+                <Ionicons name="close" size={26} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {notifications.length === 0 ? (
+              <Text style={[styles.modalEmptyText, { color: colors.textSecondary }]}>
+                No hay notificaciones todavía.
+              </Text>
+            ) : (
+              <ScrollView style={styles.modalList}>
+                {notifications.map((n) => (
+                  <View
+                    key={n.id}
+                    style={[styles.notifRow, { borderColor: colors.border }]}
+                  >
+                    <Ionicons
+                      name={n.tipo === 'inicio' ? 'play-circle' : 'checkmark-circle'}
+                      size={20}
+                      color={n.tipo === 'inicio' ? '#F59E0B' : '#059669'}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.notifTexto, { color: colors.text }]}>{n.mensaje}</Text>
+                      <Text style={[styles.notifFecha, { color: colors.textSecondary }]}>
+                        {new Date(n.fecha).toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -241,4 +301,36 @@ const styles = StyleSheet.create({
   },
   activityTitulo: { fontSize: 13, fontWeight: '700' },
   activityDetalle: { fontSize: 11, marginTop: 2 },
+  // 22. Estilos del modal de notificaciones.
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    padding: 20,
+    paddingBottom: 30,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '70%',
+    minHeight: 200,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  modalTitle: { fontSize: 20, fontWeight: '700' },
+  modalEmptyText: { fontSize: 14, textAlign: 'center', paddingVertical: 30 },
+  modalList: { maxHeight: 400 },
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  notifTexto: { fontSize: 14, fontWeight: '600' },
+  notifFecha: { fontSize: 11, marginTop: 2 },
 });
