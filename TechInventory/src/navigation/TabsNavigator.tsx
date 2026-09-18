@@ -5,6 +5,7 @@ import HomeTab from '../screens/tabs/HomeTab';
 import ProfileNavigator from './ProfileNavigator';
 import EquipmentNavigator from './EquipmentNavigator';
 import MaintenanceNavigator from './MaintenanceNavigator';
+import ReportsScreen from '../screens/reports/ReportsScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -13,6 +14,7 @@ export type TabsParamList = {
   Perfil: undefined;
   Equipos: undefined;
   Mantenimiento: undefined;
+  Reportes: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -69,6 +71,14 @@ export default function TabsNavigator() {
       options={{
         tabBarLabel: t("maintenanceTab"),
       }}
+      />
+
+      <Tab.Screen
+        name='Reportes'
+        component={ReportsScreen}
+        options={{
+          tabBarLabel: 'Reportes',
+        }}
       />
       
       <Tab.Screen
