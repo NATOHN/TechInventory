@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from "rea
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import { useTheme } from "../../context/ThemeContext";
@@ -49,20 +49,62 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
     // Los equipos antiguos pueden no tener este arreglo todavía.
     const historialEstados = equipo?.historialEstados ?? [];
 
+    // Conservamos únicamente los eventos relacionados con una baja o reactivación.
+    // Los cambios Activo → Taller y Taller → Activo pertenecen al flujo de mantenimiento.
+    const historialBajas = historialEstados.filter(
+        (evento) =>
+            evento.estadoNuevo === "baja" ||
+            evento.estadoAnterior === "baja"
+    );
+
+    // Obtenemos del Store únicamente la referencia original del arreglo.
+    // Este selector ya no crea un arreglo nuevo en cada ejecución.
+    const maintenances = useAppSelector(
+        (state) => state.maintenance.maintenances
+    );
+
+    // Filtramos y ordenamos fuera del selector.
+    // Solo se recalcula cuando cambian los mantenimientos o el equipo consultado.
+    const historialMantenimientos = useMemo(
+        () =>
+            maintenances
+                .filter(
+                    (mantenimiento) =>
+                        mantenimiento.codigoEquipo === codigo &&
+                        mantenimiento.status === "finalizado"
+                )
+                .sort(
+                    (a, b) =>
+                        new Date(b.fechaFinalizacion ?? b.fechaInicio).getTime() -
+                        new Date(a.fechaFinalizacion ?? a.fechaInicio).getTime()
+                ),
+        [maintenances, codigo]
+    );
+
     // Combinamos los distintos tipos de eventos para utilizarlos
     // posteriormente dentro del filtro Todos.
     const eventosTodos = [
+        // Cambios de ubicación o responsable.
         ...historialUbicaciones.map((movimiento) => ({
             tipo: "ubicacion" as const,
             fecha: movimiento.fecha,
             data: movimiento,
         })),
 
+        // Cambios de estado del equipo.
         ...historialEstados.map((evento) => ({
             tipo: "estado" as const,
             fecha: evento.fecha,
             data: evento,
         })),
+
+        // Mantenimientos ya finalizados.
+        ...historialMantenimientos.map((mantenimiento) => ({
+            tipo: "mantenimiento" as const,
+            fecha: mantenimiento.fechaFinalizacion ?? mantenimiento.fechaInicio,
+            data: mantenimiento,
+        })),
+
     ].sort(
         (a, b) =>
             new Date(b.fecha).getTime() -
@@ -346,71 +388,313 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
 
                     ) : (eventosTodos.map((evento, index) => {
 
-                        // Eventos relacionados con baja o reactivación.
-                        if (evento.tipo === "estado") {
-                            const cambioEstado = evento.data;
+                        // Mantenimiento finalizado dentro del historial general.
+                        if (evento.tipo === "mantenimiento") {
+                            const mantenimiento = evento.data;
 
                             return (
-                                <View key={`estado-${evento.fecha}-${index}`} style={styles.timelineItem}>
+                                <View
+                                    key={`mantenimiento-${mantenimiento.id}`}
+                                    style={styles.timelineItem}
+                                >
+                                    {/* Icono del evento de mantenimiento. */}
                                     <View style={styles.timelineIndicator}>
                                         <View
                                             style={[
                                                 styles.timelineIcon,
-                                                {
-                                                    backgroundColor:
-                                                        cambioEstado.estadoNuevo === "baja"
-                                                            ? "#DC2626"
-                                                            : "#16A34A",
-                                                },
+                                                { backgroundColor: colors.primary },
                                             ]}
                                         >
                                             <Ionicons
-                                                name={cambioEstado.estadoNuevo === "baja" ? "archive-outline" : "refresh-outline"}
+                                                name="construct-outline"
                                                 size={20}
                                                 color="#FFFFFF"
                                             />
                                         </View>
 
                                         {index < eventosTodos.length - 1 && (
-                                            <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+                                            <View
+                                                style={[
+                                                    styles.timelineLine,
+                                                    { backgroundColor: colors.border },
+                                                ]}
+                                            />
                                         )}
                                     </View>
 
-                                    <View style={[styles.timelineContent, { borderBottomColor: colors.border }]}>
-                                        <Text style={[styles.timelineDate, { color: colors.textSecondary }]}>
-                                            {formatHistoryDate(cambioEstado.fecha)}
+                                    {/* Información del mantenimiento realizado. */}
+                                    <View
+                                        style={[
+                                            styles.timelineContent,
+                                            { borderBottomColor: colors.border },
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.timelineDate,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {formatHistoryDate(
+                                                mantenimiento.fechaFinalizacion ??
+                                                mantenimiento.fechaInicio
+                                            )}
                                         </Text>
 
-                                        <Text style={[styles.timelineTitle, { color: colors.text }]}>
-                                            {cambioEstado.estadoNuevo === "baja"
-                                                ? t("equipmentDeactivatedEvent")
-                                                : t("equipmentReactivatedEvent")}
+                                        <Text
+                                            style={[
+                                                styles.timelineTitle,
+                                                { color: colors.text },
+                                            ]}
+                                        >
+                                            {language === "en"
+                                                ? `${mantenimiento.tipo === "preventivo" ? "Preventive" : "Corrective"} maintenance`
+                                                : `Mantenimiento ${mantenimiento.tipo === "preventivo" ? "preventivo" : "correctivo"}`}
                                         </Text>
 
-                                        <Text style={[styles.timelineLocation, { color: colors.textSecondary }]}>
-                                            {t("statusChangeLabel")}:{" "}
+                                        {/* Técnico responsable del trabajo. */}
+                                        <Text
+                                            style={[
+                                                styles.timelineExtraInfo,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {language === "en" ? "Technician" : "Técnico"}:{" "}
                                             <Text style={{ color: colors.text, fontWeight: "600" }}>
-                                                {getStatusLabel(cambioEstado.estadoAnterior)} → {getStatusLabel(cambioEstado.estadoNuevo)}
+                                                {mantenimiento.tecnico}
                                             </Text>
                                         </Text>
 
-                                        {/* Información opcional del evento de estado. */}
-                                        {cambioEstado.motivo && (
-                                            <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
-                                                {t("reasonLabel")}: <Text style={{ color: colors.text }}>{cambioEstado.motivo}</Text>
+                                        {/* Descripción registrada al finalizar. */}
+                                        <Text
+                                            style={[
+                                                styles.timelineExtraInfo,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {mantenimiento.descripcion}
+                                        </Text>
+
+                                        {/* Resultado final del mantenimiento. */}
+                                        {mantenimiento.estadoFinal && (
+                                            <Text
+                                                style={[
+                                                    styles.timelineExtraInfo,
+                                                    { color: colors.textSecondary },
+                                                ]}
+                                            >
+                                                {language === "en" ? "Final status" : "Resultado"}:{" "}
+                                                <Text style={{ color: colors.text }}>
+                                                    {mantenimiento.estadoFinal}
+                                                </Text>
                                             </Text>
                                         )}
 
-                                        {cambioEstado.realizadoPorNombre && (
-                                            <Text style={[styles.timelineExtraInfo, { color: colors.textSecondary }]}>
-                                                {t("performedByLabel")}: <Text style={{ color: colors.text, fontWeight: "600" }}>{cambioEstado.realizadoPorNombre}</Text>
+                                        {/* Mostramos quién firmó la conformidad de este mantenimiento. */}
+                                        {mantenimiento.firmadoPorNombre && (
+                                            <Text
+                                                style={[
+                                                    styles.timelineExtraInfo,
+                                                    { color: colors.textSecondary },
+                                                ]}
+                                            >
+                                                {language === "en" ? "Signed by" : "Firmado por"}:{" "}
+                                                <Text style={{ color: colors.text, fontWeight: "600" }}>
+                                                    {mantenimiento.firmadoPorNombre}
+                                                </Text>
                                             </Text>
                                         )}
 
+                                        {/* Fecha histórica en la que se realizó la firma. */}
+                                        {mantenimiento.fechaFirma && (
+                                            <Text
+                                                style={[
+                                                    styles.timelineExtraInfo,
+                                                    { color: colors.textSecondary },
+                                                ]}
+                                            >
+                                                {language === "en" ? "Signature date" : "Fecha de firma"}:{" "}
+                                                <Text style={{ color: colors.text }}>
+                                                    {formatHistoryDate(mantenimiento.fechaFirma)}
+                                                </Text>
+                                            </Text>
+                                        )}
+
+                                        {/* Repuestos utilizados, cuando existan. */}
+                                        {mantenimiento.repuestos.length > 0 && (
+                                            <Text
+                                                style={[
+                                                    styles.timelineExtraInfo,
+                                                    { color: colors.textSecondary },
+                                                ]}
+                                            >
+                                                {language === "en" ? "Parts" : "Repuestos"}:{" "}
+                                                <Text style={{ color: colors.text }}>
+                                                    {mantenimiento.repuestos
+                                                        .map(
+                                                            (repuesto) =>
+                                                                `${repuesto.nombre} x${repuesto.cantidad}`
+                                                        )
+                                                        .join(", ")}
+                                                </Text>
+                                            </Text>
+                                        )}
                                     </View>
                                 </View>
                             );
                         }
+
+                        // Cambios de estado del equipo: taller, activo, baja o reactivación.
+                        if (evento.tipo === "estado") {
+                            const cambioEstado = evento.data;
+
+                            // Identificamos qué transición ocurrió para mostrar el evento correcto.
+                            const esBaja = cambioEstado.estadoNuevo === "baja";
+                            const esReactivacion = cambioEstado.estadoAnterior === "baja";
+                            const esEntradaTaller = !esReactivacion && cambioEstado.estadoNuevo === "taller";
+                            const esSalidaTaller =
+                                cambioEstado.estadoAnterior === "taller" &&
+                                cambioEstado.estadoNuevo === "activo";
+
+                            // Título visible según el cambio realizado.
+                            const tituloEvento = esBaja
+                                ? t("equipmentDeactivatedEvent")
+                                : esReactivacion
+                                    ? t("equipmentReactivatedEvent")
+                                    : esEntradaTaller
+                                        ? language === "en" ? "Sent to workshop" : "Enviado a mantenimiento"
+                                        : esSalidaTaller
+                                            ? language === "en" ? "Returned to active service" : "Mantenimiento finalizado"
+                                            : language === "en" ? "Status change" : "Cambio de estado";
+
+                            // Icono correspondiente al tipo de evento.
+                            const iconoEvento = esBaja
+                                ? "archive-outline"
+                                : esReactivacion
+                                    ? "refresh-outline"
+                                    : esEntradaTaller
+                                        ? "construct-outline"
+                                        : "checkmark-circle-outline";
+
+                            // Color visual según el estado resultante.
+                            const colorEvento = esBaja
+                                ? "#DC2626"
+                                : esEntradaTaller
+                                    ? "#D97706"
+                                    : "#16A34A";
+
+                            return (
+                                <View
+                                    key={`estado-${evento.fecha}-${index}`}
+                                    style={styles.timelineItem}
+                                >
+                                    {/* Icono y línea vertical del evento. */}
+                                    <View style={styles.timelineIndicator}>
+                                        <View
+                                            style={[
+                                                styles.timelineIcon,
+                                                { backgroundColor: colorEvento },
+                                            ]}
+                                        >
+                                            <Ionicons
+                                                name={iconoEvento}
+                                                size={20}
+                                                color="#FFFFFF"
+                                            />
+                                        </View>
+
+                                        {index < eventosTodos.length - 1 && (
+                                            <View
+                                                style={[
+                                                    styles.timelineLine,
+                                                    { backgroundColor: colors.border },
+                                                ]}
+                                            />
+                                        )}
+                                    </View>
+
+                                    {/* Información del cambio de estado. */}
+                                    <View
+                                        style={[
+                                            styles.timelineContent,
+                                            { borderBottomColor: colors.border },
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.timelineDate,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {formatHistoryDate(cambioEstado.fecha)}
+                                        </Text>
+
+                                        <Text
+                                            style={[
+                                                styles.timelineTitle,
+                                                { color: colors.text },
+                                            ]}
+                                        >
+                                            {tituloEvento}
+                                        </Text>
+
+                                        <Text
+                                            style={[
+                                                styles.timelineLocation,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {t("statusChangeLabel")}:{" "}
+                                            <Text
+                                                style={{
+                                                    color: colors.text,
+                                                    fontWeight: "600",
+                                                }}
+                                            >
+                                                {getStatusLabel(cambioEstado.estadoAnterior)} →{" "}
+                                                {getStatusLabel(cambioEstado.estadoNuevo)}
+                                            </Text>
+                                        </Text>
+
+                                        {/* Mostramos el motivo cuando el evento lo posee. */}
+                                        {cambioEstado.motivo && (
+                                            <Text
+                                                style={[
+                                                    styles.timelineExtraInfo,
+                                                    { color: colors.textSecondary },
+                                                ]}
+                                            >
+                                                {t("reasonLabel")}:{" "}
+                                                <Text style={{ color: colors.text }}>
+                                                    {cambioEstado.motivo}
+                                                </Text>
+                                            </Text>
+                                        )}
+
+                                        {/* Más adelante Supabase proporcionará el usuario responsable. */}
+                                        {cambioEstado.realizadoPorNombre && (
+                                            <Text
+                                                style={[
+                                                    styles.timelineExtraInfo,
+                                                    { color: colors.textSecondary },
+                                                ]}
+                                            >
+                                                {t("performedByLabel")}:{" "}
+                                                <Text
+                                                    style={{
+                                                        color: colors.text,
+                                                        fontWeight: "600",
+                                                    }}
+                                                >
+                                                    {cambioEstado.realizadoPorNombre}
+                                                </Text>
+                                            </Text>
+                                        )}
+                                    </View>
+                                </View>
+                            );
+                        }
+                        //
 
                         // Por ahora los demás eventos corresponden a ubicación o responsable.
                         const movimiento = evento.data;
@@ -495,9 +779,17 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                     })
 
                     )
-
-                ) : mostrarMantenimientos ? (
-                    <View style={[styles.emptyCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
+                ) : mostrarMantenimientos && historialMantenimientos.length === 0 ? (
+                    // Estado vacío cuando el equipo todavía no posee mantenimientos finalizados.
+                    <View
+                        style={[
+                            styles.emptyCard,
+                            {
+                                backgroundColor: colors.cardBackground,
+                                borderColor: colors.cardBorder,
+                            },
+                        ]}
+                    >
                         <Ionicons name="construct-outline" size={36} color={colors.textSecondary} />
 
                         <Text style={[styles.emptyTitle, { color: colors.text }]}>
@@ -508,7 +800,160 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                             {t("noMaintenanceHistoryMessage")}
                         </Text>
                     </View>
-                ) : mostrarBajas && historialEstados.length === 0 ? (
+
+                ) : mostrarMantenimientos ? (
+
+                    // Mostramos los mantenimientos finalizados del equipo,
+                    // ordenados del más reciente al más antiguo.
+                    historialMantenimientos.map((mantenimiento, index) => (
+                        <View
+                            key={mantenimiento.id}
+                            style={styles.timelineItem}
+                        >
+                            {/* Icono y línea de tiempo del mantenimiento. */}
+                            <View style={styles.timelineIndicator}>
+                                <View
+                                    style={[
+                                        styles.timelineIcon,
+                                        { backgroundColor: colors.primary },
+                                    ]}
+                                >
+                                    <Ionicons
+                                        name="construct-outline"
+                                        size={20}
+                                        color="#FFFFFF"
+                                    />
+                                </View>
+
+                                {index < historialMantenimientos.length - 1 && (
+                                    <View
+                                        style={[
+                                            styles.timelineLine,
+                                            { backgroundColor: colors.border },
+                                        ]}
+                                    />
+                                )}
+                            </View>
+
+                            {/* Información principal del mantenimiento realizado. */}
+                            <View
+                                style={[
+                                    styles.timelineContent,
+                                    { borderBottomColor: colors.border },
+                                ]}
+                            >
+                                <Text
+                                    style={[
+                                        styles.timelineDate,
+                                        { color: colors.textSecondary },
+                                    ]}
+                                >
+                                    {formatHistoryDate(
+                                        mantenimiento.fechaFinalizacion ??
+                                        mantenimiento.fechaInicio
+                                    )}
+                                </Text>
+
+                                <Text
+                                    style={[
+                                        styles.timelineTitle,
+                                        { color: colors.text },
+                                    ]}
+                                >
+                                    {language === "en"
+                                        ? `${mantenimiento.tipo === "preventivo" ? "Preventive" : "Corrective"} maintenance`
+                                        : `Mantenimiento ${mantenimiento.tipo === "preventivo" ? "preventivo" : "correctivo"}`}
+                                </Text>
+
+                                {/* Técnico que realizó el mantenimiento. */}
+                                <Text
+                                    style={[
+                                        styles.timelineExtraInfo,
+                                        { color: colors.textSecondary },
+                                    ]}
+                                >
+                                    {language === "en" ? "Technician" : "Técnico"}:{" "}
+                                    <Text style={{ color: colors.text, fontWeight: "600" }}>
+                                        {mantenimiento.tecnico}
+                                    </Text>
+                                </Text>
+
+                                {/* Descripción del trabajo realizado. */}
+                                <Text
+                                    style={[
+                                        styles.timelineExtraInfo,
+                                        { color: colors.textSecondary },
+                                    ]}
+                                >
+                                    {mantenimiento.descripcion}
+                                </Text>
+
+                                {/* Resultado final del mantenimiento. */}
+                                {mantenimiento.estadoFinal && (
+                                    <Text
+                                        style={[
+                                            styles.timelineExtraInfo,
+                                            { color: colors.textSecondary },
+                                        ]}
+                                    >
+                                        {language === "en" ? "Final status" : "Resultado"}:{" "}
+                                        <Text style={{ color: colors.text }}>
+                                            {mantenimiento.estadoFinal}
+                                        </Text>
+                                    </Text>
+                                )}
+
+                                {/* Mostramos quién firmó la conformidad al finalizar el mantenimiento. */}
+                                {mantenimiento.firmadoPorNombre && (
+                                    <Text
+                                        style={[
+                                            styles.timelineExtraInfo,
+                                            { color: colors.textSecondary },
+                                        ]}
+                                    >
+                                        {language === "en" ? "Signed by" : "Firmado por"}:{" "}
+                                        <Text style={{ color: colors.text, fontWeight: "600" }}>
+                                            {mantenimiento.firmadoPorNombre}
+                                        </Text>
+                                    </Text>
+                                )}
+
+                                {/* Conservamos también la fecha exacta en la que se realizó la firma. */}
+                                {mantenimiento.fechaFirma && (
+                                    <Text
+                                        style={[
+                                            styles.timelineExtraInfo,
+                                            { color: colors.textSecondary },
+                                        ]}
+                                    >
+                                        {language === "en" ? "Signature date" : "Fecha de firma"}:{" "}
+                                        <Text style={{ color: colors.text }}>
+                                            {formatHistoryDate(mantenimiento.fechaFirma)}
+                                        </Text>
+                                    </Text>
+                                )}
+
+                                {/* Resumen de repuestos utilizados. */}
+                                {mantenimiento.repuestos.length > 0 && (
+                                    <Text
+                                        style={[
+                                            styles.timelineExtraInfo,
+                                            { color: colors.textSecondary },
+                                        ]}
+                                    >
+                                        {language === "en" ? "Parts" : "Repuestos"}:{" "}
+                                        <Text style={{ color: colors.text }}>
+                                            {mantenimiento.repuestos
+                                                .map((repuesto) => `${repuesto.nombre} x${repuesto.cantidad}`)
+                                                .join(", ")}
+                                        </Text>
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                    ))
+
+                ) : mostrarBajas && historialBajas.length === 0 ? (
                     /* El historial de baja/reactivación se conectará 
                     cuando almacenemos esos eventos individualmente. */
                     <View style={[styles.emptyCard, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}>
@@ -523,7 +968,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                         </Text>
                     </View>
                 ) : mostrarBajas ? (
-                    [...historialEstados].reverse().map((evento, index) => (
+                    [...historialBajas].reverse().map((evento, index) => (
                         <View
                             key={`${evento.fecha}-${index}`}
                             style={styles.timelineItem}
@@ -553,7 +998,7 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
                                 </View>
 
                                 {/* Une visualmente varios eventos de estado. */}
-                                {index < historialEstados.length - 1 && (
+                                {index < historialBajas.length - 1 && (
                                     <View
                                         style={[
                                             styles.timelineLine,

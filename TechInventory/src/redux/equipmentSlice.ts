@@ -31,7 +31,7 @@ export type EquipmentLocationHistory = {
     departamentoNuevo: string;
     empleadoAnterior?: string;
     empleadoNuevo?: string;
-    
+
     // Usuario del sistema que realizó la reasignación.
     // Se completará cuando integremos los usuarios desde Supabase.
     realizadoPorId?: string;
@@ -178,6 +178,99 @@ const equipmentSlice = createSlice({
             }
         },
 
+
+        // Envía un equipo a taller cuando comienza un mantenimiento.
+        // También registra automáticamente el cambio dentro del historial de estados.
+        enviarEquipoATallerPorMantenimiento: (
+            state,
+            action: PayloadAction<{ codigo: string }>
+        ) => {
+            // Buscamos el equipo mediante su código único.
+            const equipo = state.equipments.find(
+                (equipo) => equipo.codigo === action.payload.codigo
+            );
+
+            // Solo hacemos el cambio si actualmente está activo.
+            // Esto evita registrar varias veces activo -> taller por error.
+            if (equipo && equipo.status === "activo") {
+                equipo.historialEstados ??= [];
+
+                // Registramos que el cambio fue provocado por Mantenimiento.
+                equipo.historialEstados.push({
+                    estadoAnterior: "activo",
+                    estadoNuevo: "taller",
+                    fecha: new Date().toISOString(),
+                    origen: "mantenimiento",
+                    motivo: "Inicio de mantenimiento",
+                });
+
+                // Finalmente actualizamos el estado actual del equipo.
+                equipo.status = "taller";
+            }
+        },
+
+        // Devuelve el equipo a Activo cuando el mantenimiento finaliza correctamente.
+        // También registra automáticamente el cambio dentro del historial de estados.
+        activarEquipoTrasMantenimiento: (
+            state,
+            action: PayloadAction<{ codigo: string }>
+        ) => {
+            // Buscamos el equipo utilizando su código único.
+            const equipo = state.equipments.find(
+                (equipo) => equipo.codigo === action.payload.codigo
+            );
+
+            // Solo realizamos el cambio si el equipo está actualmente en Taller.
+            if (equipo && equipo.status === "taller") {
+                equipo.historialEstados ??= [];
+
+                // Registramos el cambio provocado por la finalización del mantenimiento.
+                equipo.historialEstados.push({
+                    estadoAnterior: "taller",
+                    estadoNuevo: "activo",
+                    fecha: new Date().toISOString(),
+                    origen: "mantenimiento",
+                    motivo: "Mantenimiento finalizado",
+                });
+
+                // El equipo vuelve a quedar disponible.
+                equipo.status = "activo";
+            }
+        },
+
+        // Da de baja un equipo directamente desde un mantenimiento.
+        // El motivo quedará registrado para mostrarlo posteriormente en el historial.
+        darDeBajaEquipoPorMantenimiento: (
+            state,
+            action: PayloadAction<{ codigo: string; motivo: string }>
+        ) => {
+            // Buscamos el equipo relacionado con el mantenimiento.
+            const equipo = state.equipments.find(
+                (equipo) => equipo.codigo === action.payload.codigo
+            );
+
+            // La baja desde mantenimiento solo procede si el equipo está en Taller.
+            if (equipo && equipo.status === "taller") {
+                // Conservamos el estado anterior por si posteriormente se reactiva el equipo.
+                equipo.estadoAntesDeBaja = "taller";
+
+                // Creamos el historial de estados si todavía no existe.
+                equipo.historialEstados ??= [];
+
+                // Registramos que la baja se originó dentro de Mantenimiento.
+                equipo.historialEstados.push({
+                    estadoAnterior: "taller",
+                    estadoNuevo: "baja",
+                    fecha: new Date().toISOString(),
+                    origen: "mantenimiento",
+                    motivo: action.payload.motivo,
+                });
+
+                // Finalmente cambiamos el estado actual del equipo.
+                equipo.status = "baja";
+            }
+        },
+
         // Da de baja un equipo y registra el cambio dentro del historial de estados.
         darDeBajaEquipo: (state, action: PayloadAction<{ codigo: string }>) => {
             // Buscamos el equipo utilizando su código único.
@@ -211,7 +304,7 @@ const equipmentSlice = createSlice({
         },
 
         // Permite reactivar un equipo que anteriormente fue dado de baja.
-        reactivarEquipo: (state,action: PayloadAction<{ codigo: string }>) => {
+        reactivarEquipo: (state, action: PayloadAction<{ codigo: string }>) => {
 
             // Buscamos el equipo mediante su código único.
             const equipo = state.equipments.find(
@@ -219,25 +312,37 @@ const equipmentSlice = createSlice({
             );
 
             if (equipo && equipo.status === "baja") {
-
-                // Recuperamos el estado que tenía antes de darse de baja.
-                const nuevoEstado = equipo.estadoAntesDeBaja ?? "activo";
-
-                // Creamos el historial si todavía no existe.
                 equipo.historialEstados ??= [];
 
-                // Registramos la reactivación.
+                // Buscamos el último evento donde este equipo fue dado de baja.
+                // Lo necesitamos para saber si la baja vino desde Mantenimiento o desde Detalle.
+                const ultimaBaja = [...equipo.historialEstados]
+                    .reverse()
+                    .find((evento) => evento.estadoNuevo === "baja");
+
+                // Si la baja ocurrió dentro de un mantenimiento ya finalizado,
+                // al reactivarlo debe volver a Activo y no a Taller.
+                const nuevoEstado =
+                    ultimaBaja?.origen === "mantenimiento"
+                        ? "activo"
+                        : equipo.estadoAntesDeBaja ?? "activo";
+
+                // Registramos la reactivación en el historial.
                 equipo.historialEstados.push({
                     estadoAnterior: "baja",
                     estadoNuevo: nuevoEstado,
                     fecha: new Date().toISOString(),
                     origen: "detalle",
+                    motivo:
+                        ultimaBaja?.origen === "mantenimiento"
+                            ? "Equipo reactivado después de una baja por mantenimiento"
+                            : undefined,
                 });
 
-                // Restauramos el estado que poseía antes de la baja.
+                // Aplicamos el nuevo estado.
                 equipo.status = nuevoEstado;
 
-                 // Limpiamos el estado temporal.
+                // Ya no necesitamos conservar el estado temporal anterior.
                 delete equipo.estadoAntesDeBaja;
             }
         },
@@ -277,6 +382,9 @@ export const {
     agregarEquipo,
     cargarEquipos,
     cambiarUbicacionEquipo,
+    enviarEquipoATallerPorMantenimiento,
+    activarEquipoTrasMantenimiento,
+    darDeBajaEquipoPorMantenimiento,
     darDeBajaEquipo,
     reactivarEquipo,
     actualizarDatosEquipo

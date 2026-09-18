@@ -4,6 +4,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { CameraView, useCameraPermissions, BarcodeScanningResult } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+// Permite mostrar el escáner y sus mensajes en el idioma seleccionado.
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppSelector } from '../../redux/hooks';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
@@ -12,8 +14,14 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
   // 2. Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
 
+  // Obtenemos las traducciones de la aplicación.
+  const { t } = useLanguage();
+
   // 3. Leemos los equipos registrados para validar el codigo escaneado o escrito.
   const equipments = useAppSelector((state) => state.equipment.equipments);
+
+  // Leemos los mantenimientos para evitar abrir un segundo proceso sobre el mismo equipo.
+  const maintenances = useAppSelector((state) => state.maintenance.maintenances);
 
   // 4. Permiso de camara del dispositivo, provisto por expo-camera.
   const [permission, requestPermission] = useCameraPermissions();
@@ -44,19 +52,61 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
     );
 
     if (!equipo) {
-      Alert.alert('Equipo no encontrado', 'Verifica que el código sea correcto.', [
-        { text: 'OK', onPress: () => setScanned(false) },
-      ]);
+      Alert.alert(
+        t('maintenanceEquipmentNotFoundTitle'),
+        t('maintenanceEquipmentNotFoundMessage'),
+        [
+          { text: 'OK', onPress: () => setScanned(false) },
+        ]);
       return;
     }
 
     // 11. Los equipos dados de baja no pueden recibir mantenimiento.
     if (equipo.status === 'baja') {
       Alert.alert(
-        'Equipo dado de baja',
-        `El equipo ${equipo.codigo} está dado de baja y no puede recibir mantenimiento.`,
+        t('maintenanceInactiveEquipmentTitle'),
+        t('maintenanceInactiveEquipmentMessage').replace(
+          '__CODIGO__',
+          equipo.codigo
+        ),
         [{ text: 'OK', onPress: () => setScanned(false) }]
       );
+      return;
+    }
+
+    // Verificamos si este equipo ya tiene un mantenimiento actualmente En proceso.
+    const mantenimientoEnProceso = maintenances.find(
+      (mantenimiento) =>
+        mantenimiento.codigoEquipo === equipo.codigo &&
+        mantenimiento.status === 'en_proceso'
+    );
+
+    if (mantenimientoEnProceso) {
+      Alert.alert(
+        t('maintenanceAlreadyInProgressTitle'),
+        t('maintenanceAlreadyInProgressMessage').replace(
+          '__CODIGO__',
+          equipo.codigo
+        ),
+        [
+          // Permitimos cancelar y continuar escaneando.
+          {
+            text: t('maintenanceCancelButton'),
+            style: 'cancel',
+            onPress: () => setScanned(false),
+          },
+
+          // También damos acceso directo al mantenimiento que ya está abierto.
+          {
+            text: t('maintenanceOpenExistingButton'),
+            onPress: () =>
+              navigation.navigate('NewMaintenanceScreen', {
+                maintenanceId: mantenimientoEnProceso.id,
+              }),
+          },
+        ]
+      );
+
       return;
     }
 
@@ -83,7 +133,7 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Escanear equipo</Text>
+        <Text style={styles.title}>{t('maintenanceScannerTitle')}</Text>
         <TouchableOpacity onPress={() => setTorchOn((prev) => !prev)}>
           <Ionicons name="flash" size={22} color={torchOn ? '#FACC15' : '#fff'} />
         </TouchableOpacity>
@@ -100,15 +150,15 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
           />
 
           <Text style={[styles.label, { color: colors.textSecondary }]}>
-            Ingresa el código del equipo (EQ-xxxxx)
+            {t('maintenanceEnterCodeLabel')}
           </Text>
           <CustomInput type="text" placeholder="EQ-0001" value={codigo} onChange={setCodigo} />
 
-          <CustomButton title="Continuar" onPress={handleContinuarManual} />
+          <CustomButton title={t('maintenanceContinueButton')} onPress={handleContinuarManual} />
 
           <TouchableOpacity style={styles.switchModeButton} onPress={() => setManualMode(false)}>
             <Ionicons name="camera-outline" size={18} color={colors.primary} />
-            <Text style={[styles.switchModeText, { color: colors.primary }]}>Volver a escanear</Text>
+            <Text style={[styles.switchModeText, { color: colors.primary }]}>{t('maintenanceBackToScannerButton')}</Text>
           </TouchableOpacity>
         </View>
       ) : !permission?.granted ? (
@@ -116,11 +166,11 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
         <View style={styles.permissionBody}>
           <Ionicons name="camera-outline" size={48} color="#fff" style={{ marginBottom: 16 }} />
           <Text style={styles.permissionText}>
-            Necesitamos acceso a tu cámara para escanear el código QR del equipo.
+            {t('maintenanceCameraPermissionMessage')}
           </Text>
-          <CustomButton title="Permitir cámara" onPress={requestPermission} />
+          <CustomButton title={t('maintenanceAllowCameraButton')} onPress={requestPermission} />
           <TouchableOpacity style={styles.manualLinkButton} onPress={() => setManualMode(true)}>
-            <Text style={styles.manualLinkText}>Ingresar código manualmente</Text>
+            <Text style={styles.manualLinkText}> {t('maintenanceEnterCodeManuallyButton')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -137,13 +187,13 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
           {/* 19. Recuadro guia superpuesto sobre la camara */}
           <View style={styles.overlay}>
             <View style={styles.scanFrame} />
-            <Text style={styles.overlayText}>Centra el código QR dentro del recuadro</Text>
+            <Text style={styles.overlayText}>{t('maintenanceScannerInstruction')}</Text>
           </View>
 
           {/* 20. Boton para cambiar a ingreso manual */}
           <TouchableOpacity style={styles.manualButton} onPress={() => setManualMode(true)}>
             <Ionicons name="keypad-outline" size={18} color="#fff" />
-            <Text style={styles.manualButtonText}>Ingresar código manualmente</Text>
+            <Text style={styles.manualButtonText}>{t('maintenanceEnterCodeManuallyButton')}</Text>
           </TouchableOpacity>
         </View>
       )}
