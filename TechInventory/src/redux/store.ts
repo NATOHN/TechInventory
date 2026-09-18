@@ -1,9 +1,10 @@
 //1. Importaciones 
 import { configureStore } from '@reduxjs/toolkit';
 
-import equipmentReducer, { cargarEquipos} from './equipmentSlice';
-import maintenanceReducer from './maintenanceSlice';
+import equipmentReducer, { cargarEquipos } from './equipmentSlice';
+import maintenanceReducer, { cargarMantenimientos } from './maintenanceSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
+import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 
 
 // 2. Creamos el Store principal de TechInventory.
@@ -15,6 +16,9 @@ export const store = configureStore({
         maintenance: maintenanceReducer,
     },
 });
+
+// Guardamos la referencia actual para persistir únicamente cuando Mantenimiento cambie.
+let previousMaintenances = store.getState().maintenance.maintenances;
 
 // 8. Nos suscribimos a los cambios del Store. Esta función se ejecutará cada vez que Redux
 // actualice alguno de sus estados.
@@ -32,7 +36,25 @@ store.subscribe(() => {
     // 10. Guardamos el arreglo actualizado en AsyncStorage. Si ocurre un error, lo mostramos en consola.
     saveEquipments(equipments).catch((error) => {
         console.log('Error al guardar los equipos:', error);
+
     });
+
+    // Obtenemos los mantenimientos actuales del Store.
+    const maintenances = store.getState().maintenance.maintenances;
+
+    // Solo guardamos cuando realmente cambió el arreglo de mantenimientos.
+    if (maintenances !== previousMaintenances) {
+        previousMaintenances = maintenances;
+
+        console.log(
+            'Guardando mantenimientos en AsyncStorage:',
+            maintenances.length
+        );
+
+        saveMaintenances(maintenances).catch((error) => {
+            console.log('Error al guardar los mantenimientos:', error);
+        });
+    }
 });
 
 
@@ -62,6 +84,24 @@ const initializeEquipments = async () => {
 
 // 15. Ejecutamos la carga cuando se crea el Store.
 initializeEquipments();
+
+// Recuperamos los mantenimientos guardados cuando inicia la aplicación.
+const initializeMaintenances = async () => {
+    const savedMaintenances = await loadMaintenances();
+
+    // Si existen datos guardados, reemplazamos los datos iniciales del Slice.
+    if (savedMaintenances !== null) {
+        store.dispatch(cargarMantenimientos(savedMaintenances));
+
+        console.log(
+            'Mantenimientos recuperados de AsyncStorage:',
+            savedMaintenances.length
+        );
+    }
+};
+
+// Ejecutamos la recuperación al crear el Store.
+initializeMaintenances();
 
 
 // 6. RootState representa la estructura completa del estado global almacenado dentro de Redux.
