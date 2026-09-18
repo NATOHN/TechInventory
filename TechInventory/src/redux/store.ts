@@ -4,6 +4,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import equipmentReducer, { cargarEquipos} from './equipmentSlice';
 import maintenanceReducer from './maintenanceSlice';
 import usersReducer from './usersSlice';
+import notificationsReducer from './notificationsSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 
 
@@ -16,6 +17,8 @@ export const store = configureStore({
         maintenance: maintenanceReducer,
         // 5. La propiedad users representará todo el estado manejado por usersSlice.
         users: usersReducer,
+        // 6. La propiedad notifications representará todo el estado manejado por notificationsSlice.
+        notifications: notificationsReducer,
     },
 });
 
