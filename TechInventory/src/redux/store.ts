@@ -4,8 +4,9 @@ import { configureStore } from '@reduxjs/toolkit';
 import equipmentReducer, { cargarEquipos} from './equipmentSlice';
 import maintenanceReducer from './maintenanceSlice';
 import usersReducer from './usersSlice';
-import notificationsReducer from './notificationsSlice';
+import notificationsReducer, { cargarNotificaciones } from './notificationsSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
+import { saveNotifications, loadNotifications } from './notificationsStorage';
 
 
 // 2. Creamos el Store principal de TechInventory.
@@ -39,6 +40,13 @@ store.subscribe(() => {
     saveEquipments(equipments).catch((error) => {
         console.log('Error al guardar los equipos:', error);
     });
+
+    // 10a. Obtenemos el arreglo completo de notificaciones y lo guardamos tambien en AsyncStorage.
+    const notifications = store.getState().notifications.notifications;
+
+    saveNotifications(notifications).catch((error) => {
+        console.log('Error al guardar las notificaciones:', error);
+    });
 });
 
 
@@ -68,6 +76,31 @@ const initializeEquipments = async () => {
 
 // 15. Ejecutamos la carga cuando se crea el Store.
 initializeEquipments();
+
+
+// 16. Creamos una función encargada de recuperar las notificaciones cuando inicia la aplicación.
+const initializeNotifications = async () => {
+
+    // 17. Intentamos recuperar las notificaciones almacenadas anteriormente.
+    const savedNotifications = await loadNotifications();
+
+    // 18. Si AsyncStorage contiene notificaciones, reemplazamos el estado inicial de Redux
+    // por los datos recuperados.
+    if (savedNotifications !== null) {
+
+        store.dispatch(
+            cargarNotificaciones(savedNotifications)
+        );
+
+        console.log(
+            'Notificaciones recuperadas de AsyncStorage:',
+            savedNotifications.length
+        );
+    }
+};
+
+// 19. Ejecutamos la carga de notificaciones cuando se crea el Store.
+initializeNotifications();
 
 
 // 6. RootState representa la estructura completa del estado global almacenado dentro de Redux.
