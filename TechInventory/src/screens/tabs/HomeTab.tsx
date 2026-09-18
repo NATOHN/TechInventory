@@ -1,6 +1,6 @@
 // 1. Importaciones
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -78,10 +78,14 @@ export default function HomeTab({ navigation }: any) {
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
 
-        {/* 13. Encabezado con saludo personalizado y campana de notificaciones */}
+                {/* 13. Encabezado con saludo personalizado y campana de notificaciones */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Ionicons name="person-circle" size={40} color={colors.primary} />
+            {currentUser?.fotoPerfil ? (
+              <Image source={{ uri: currentUser.fotoPerfil }} style={styles.avatarImage} />
+            ) : (
+              <Ionicons name="person-circle" size={40} color={colors.primary} />
+            )}
             <View>
               <Text style={[styles.saludo, { color: colors.text }]}>
                 Hola, {currentUser?.nombreCompleto.split(' ')[0] ?? 'usuario'}
@@ -236,7 +240,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  avatarImage: { width: 40, height: 40, borderRadius: 20 },
   saludo: { fontSize: 17, fontWeight: '700' },
   subSaludo: { fontSize: 12, marginTop: 2 },
   notificationDot: {
