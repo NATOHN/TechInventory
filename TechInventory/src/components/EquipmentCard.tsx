@@ -40,7 +40,10 @@ const EquipmentCard = ({ codigo, marca, modelo, serie, sucursal, departamento, e
             <View style={styles.content}>
                 <View style={styles.header}>
                     <Text style={[styles.codigo, { color: colors.primary }]}>{codigo}</Text>
-                    <StatusBadge status={status} />
+                    <StatusBadge 
+                        status={status}
+                        empleadoAsignado={empleadoAsignado} 
+                    />
                 </View>
                 <Text style={[styles.titulo, { color: colors.text }]}>{`${marca} ${modelo}`}</Text>
                 <Text style={[styles.info, { color: colors.textSecondary }]}>{`${t("seriesLabel")}: ${serie}`}</Text>
