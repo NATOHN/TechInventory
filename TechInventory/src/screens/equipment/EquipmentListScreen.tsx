@@ -22,7 +22,7 @@ type Props = NativeStackScreenProps<
 
 
 // Definimos los únicos filtros de estado que puede seleccionar el usuario.
-type StatusFilter = | 'todos' | 'activo' | 'taller' | 'baja';
+type StatusFilter = | 'todos' | 'activo' | 'en_uso' | 'taller' | 'baja';
 
 const EquipmentListScreen = ({ navigation }: Props) => {
     //Obtenemos la paleta de colores actual desde ThemeContext.
@@ -137,7 +137,21 @@ const EquipmentListScreen = ({ navigation }: Props) => {
     // de la búsqueda y los filtros avanzados.
     const totalTodos = equiposSegunFiltrosAvanzados.length;
 
-    const totalActivos = equiposSegunFiltrosAvanzados.filter((equipo) => equipo.status === 'activo').length;
+    // Disponible = activo pero sin empleado asignado.
+    // Conservamos el nombre totalActivos para no cambiar variables existentes.
+    const totalActivos = equiposSegunFiltrosAvanzados.filter(
+        (equipo) =>
+            equipo.status === 'activo' &&
+            (!equipo.empleadoAsignado || equipo.empleadoAsignado === 'Sin asignar')
+    ).length;
+
+    // En uso = activo y con un empleado asignado.
+    const totalEnUso = equiposSegunFiltrosAvanzados.filter(
+        (equipo) =>
+            equipo.status === 'activo' &&
+            !!equipo.empleadoAsignado &&
+            equipo.empleadoAsignado !== 'Sin asignar'
+    ).length;
 
     const totalTaller = equiposSegunFiltrosAvanzados.filter((equipo) => equipo.status === 'taller').length;
 
@@ -145,9 +159,31 @@ const EquipmentListScreen = ({ navigation }: Props) => {
 
 
     // Aplicamos el filtro de estado y también el filtro avanzado de sucursal.
-    const equiposFiltrados = equiposSegunFiltrosAvanzados.filter((equipo) =>
-             statusFilter === "todos" || equipo.status === statusFilter
-    );
+    const equiposFiltrados = equiposSegunFiltrosAvanzados.filter((equipo) => {
+        // Todos muestra cualquier equipo.
+        if (statusFilter === 'todos') return true;
+
+        // En uso: activo y con empleado asignado.
+        if (statusFilter === 'en_uso') {
+            return (
+                equipo.status === 'activo' &&
+                !!equipo.empleadoAsignado &&
+                equipo.empleadoAsignado !== 'Sin asignar'
+            );
+        }
+
+        // Disponible: activo y sin empleado asignado.
+        if (statusFilter === 'activo') {
+            return (
+                equipo.status === 'activo' &&
+                (!equipo.empleadoAsignado || equipo.empleadoAsignado === 'Sin asignar')
+            );
+        }
+
+        // Mantenimiento y Baja continúan funcionando exactamente igual.
+        return equipo.status === statusFilter;
+    });
+
 
     // Indica si existe al menos un filtro avanzado activo.
     const hasAdvancedFilters = selectedBranch !== "todas" || selectedDepartment !== "todos" || selectedBrand !== "todas";
@@ -185,7 +221,11 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                     </View>
 
                     {/* Contenedor de los filtros por estado */}
-                    <View style={styles.filtersContainer}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.filtersContainer}
+                    >
                         {/* Filtro Todos */}
                         <TouchableOpacity style={[styles.filterChip, {
                             backgroundColor: statusFilter === 'todos' ? colors.primary : colors.surface,
@@ -213,6 +253,31 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                 style={[styles.filterText, { color: statusFilter === 'activo' ? colors.background : colors.textSecondary, }]}
                             >
                                 {`${t("statusActive")} (${totalActivos})`}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Filtro En uso */}
+                        <TouchableOpacity
+                            style={[
+                                styles.filterChip,
+                                {
+                                    backgroundColor: statusFilter === 'en_uso' ? colors.primary : colors.surface,
+                                    borderColor: statusFilter === 'en_uso' ? colors.primary : colors.border,
+                                }
+                            ]}
+                            onPress={() => setStatusFilter('en_uso')}
+                        >
+                            <Text
+                                style={[
+                                    styles.filterText,
+                                    {
+                                        color: statusFilter === 'en_uso'
+                                            ? colors.background
+                                            : colors.textSecondary,
+                                    }
+                                ]}
+                            >
+                                {`${t("statusInUse")} (${totalEnUso})`}
                             </Text>
                         </TouchableOpacity>
 
@@ -244,7 +309,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                             </Text>
                         </TouchableOpacity>
 
-                    </View>
+                    </ScrollView>
 
 
                     {equiposFiltrados.map((equipo) => {
@@ -478,17 +543,17 @@ const styles = StyleSheet.create({
     // Contenedor horizontal de los filtros.
     filtersContainer: {
         flexDirection: 'row',
-        width: '100%',
-        gap: 6,
+        gap: 8,
+        paddingRight: 20,
         marginBottom: 16,
     },
 
     // Diseño de cada filtro.
     filterChip: {
-        flex: 1,
+        flexShrink: 0,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 4,
+        paddingHorizontal: 16,
         paddingVertical: 9,
         borderRadius: 20,
         borderWidth: 1,
