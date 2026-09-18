@@ -23,6 +23,7 @@ import {
   MaintenancePriority,
   MaintenanceType,
 } from '../../redux/maintenanceSlice';
+import { agregarNotificacion } from '../../redux/notificationsSlice';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 
@@ -141,21 +142,33 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   });
 
   // 23. Guarda el mantenimiento dejandolo en_proceso, sin pasar a la firma.
-  // Si ya existia, actualiza sus datos; si es nuevo, lo crea (esto es "Iniciar proceso").
-  // En ambos casos regresa a la lista de mantenimientos al terminar.
+  // Si ya existia, actualiza sus datos; si es nuevo, lo crea y notifica que se inicio.
   const handleGuardar = () => {
     if (!validarCampos()) return;
 
     if (maintenanceExistente) {
       dispatch(actualizarMantenimiento({ id: maintenanceExistente.id, ...construirDatosFormulario() }));
     } else {
+      const id = `MT-${Date.now()}`;
       dispatch(
         crearMantenimiento({
-          id: `MT-${Date.now()}`,
+          id,
           codigoEquipo,
           ...construirDatosFormulario(),
           status: 'en_proceso',
           fechaInicio: new Date().toISOString(),
+        })
+      );
+
+      // 23a. Notificamos que se inicio un mantenimiento nuevo, solo la primera vez que se crea.
+      dispatch(
+        agregarNotificacion({
+          id: `NTF-${Date.now()}`,
+          tipo: 'inicio',
+          mensaje: `Se inició mantenimiento del equipo ${codigoEquipo}`,
+          codigoEquipo,
+          leida: false,
+          fecha: new Date().toISOString(),
         })
       );
     }
@@ -164,7 +177,7 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   };
 
   // 24. Valida los campos y navega a la pantalla de firma, sin marcar el mantenimiento como finalizado todavia.
-  // Si ya existia, primero guarda los cambios editados antes de ir a firmar.
+  // Si ya existia, primero guarda los cambios editados; si es nuevo, lo crea y notifica que se inicio.
   const handleContinuarFirma = () => {
     if (!validarCampos()) return;
 
@@ -180,6 +193,18 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
           ...construirDatosFormulario(),
           status: 'en_proceso',
           fechaInicio: new Date().toISOString(),
+        })
+      );
+
+      // 24a. Notificamos que se inicio un mantenimiento nuevo, solo la primera vez que se crea.
+      dispatch(
+        agregarNotificacion({
+          id: `NTF-${Date.now()}`,
+          tipo: 'inicio',
+          mensaje: `Se inició mantenimiento del equipo ${codigoEquipo}`,
+          codigoEquipo,
+          leida: false,
+          fecha: new Date().toISOString(),
         })
       );
     }
