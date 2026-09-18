@@ -16,7 +16,7 @@ export default function MaintenanceCard({ maintenance, onPress }: Props) {
   const { colors } = useTheme();
 
   // 4. Obtenemos la función t desde LanguageContext para mostrar los textos traducidos.
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   // 5. Determinamos color y texto de la insignia de estado según el status del mantenimiento.
   const isFinalizado = maintenance.status === 'finalizado';
@@ -29,13 +29,30 @@ export default function MaintenanceCard({ maintenance, onPress }: Props) {
   // 7. Determinamos color y texto según la prioridad del mantenimiento.
   const priorityColor =
     maintenance.prioridad === 'alta' ? 'red' :
-    maintenance.prioridad === 'media' ? 'orange' :
-    maintenance.prioridad === 'baja' ? 'green' : colors.textSecondary;
+      maintenance.prioridad === 'media' ? 'orange' :
+        maintenance.prioridad === 'baja' ? 'green' : colors.textSecondary;
 
   const priorityText =
     maintenance.prioridad === 'alta' ? t('maintenancePriorityHigh') :
-    maintenance.prioridad === 'media' ? t('maintenancePriorityMedium') :
-    maintenance.prioridad === 'baja' ? t('maintenancePriorityLow') : '';
+      maintenance.prioridad === 'media' ? t('maintenancePriorityMedium') :
+        maintenance.prioridad === 'baja' ? t('maintenancePriorityLow') : '';
+
+  // En procesos abiertos mostramos la fecha de inicio.
+  // En finalizados utilizamos la fecha en que terminó el mantenimiento.
+  const fechaMantenimiento =
+    maintenance.status === 'finalizado'
+      ? maintenance.fechaFinalizacion ?? maintenance.fechaInicio
+      : maintenance.fechaInicio;
+
+  // Formateamos la fecha según el idioma actual.
+  const fechaText = new Date(fechaMantenimiento).toLocaleDateString(
+    language === 'en' ? 'en-US' : 'es-HN',
+    {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }
+  );
 
   return (
     // 8. Toda la tarjeta es tocable: al presionarla, se abre el detalle/edicion del mantenimiento.
@@ -47,7 +64,16 @@ export default function MaintenanceCard({ maintenance, onPress }: Props) {
 
       {/* 9. Fila superior: codigo del equipo + insignia de estado */}
       <View style={styles.headerRow}>
-        <Text style={[styles.codigo, { color: colors.primary }]}>{maintenance.codigoEquipo}</Text>
+        <View>
+          {/* Los registros nuevos muestran su consecutivo MT-0001, MT-0002... */}
+          {maintenance.codigoMantenimiento && (
+            <Text style={[styles.codigo, { color: colors.primary }]}>
+              {maintenance.codigoMantenimiento}
+            </Text>
+          )}
+
+          <Text style={[styles.codigo, { color: colors.primary }]}>{maintenance.codigoEquipo}</Text>
+        </View>
         <View style={[styles.badge, { backgroundColor: badgeColor }]}>
           <Text style={styles.badgeText}>{badgeText.toUpperCase()}</Text>
         </View>
@@ -57,6 +83,19 @@ export default function MaintenanceCard({ maintenance, onPress }: Props) {
       <Text style={[styles.descripcion, { color: colors.text }]} numberOfLines={2}>
         {maintenance.descripcion}
       </Text>
+
+      {/* Fecha correspondiente al inicio o finalización del mantenimiento. */}
+      <View style={styles.dateRow}>
+        <Ionicons
+          name="calendar-outline"
+          size={14}
+          color={colors.textSecondary}
+        />
+
+        <Text style={[styles.dateText, { color: colors.textSecondary }]}>
+          {fechaText}
+        </Text>
+      </View>
 
       {/* 11. Fila inferior: tecnico, tipo de mantenimiento y prioridad */}
       <View style={styles.footerRow}>
@@ -104,7 +143,7 @@ const styles = StyleSheet.create({
   },
   codigo: {
     fontSize: 15,
-    fontWeight: '700',
+     marginTop: 2,
   },
   badge: {
     paddingHorizontal: 8,
@@ -119,6 +158,19 @@ const styles = StyleSheet.create({
   descripcion: {
     fontSize: 13,
   },
+
+  // Fecha compacta para identificar rápidamente cuándo ocurrió el mantenimiento.
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+
+  dateText: {
+    fontSize: 12,
+  },
+
   footerRow: {
     flexDirection: 'row',
     gap: 14,

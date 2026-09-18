@@ -1,10 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { RouteProp } from '@react-navigation/native';
+import {NavigatorScreenParams, RouteProp } from '@react-navigation/native';
 import HomeTab from '../screens/tabs/HomeTab';
 import ProfileTab from '../screens/tabs/ProfileTab';
 import EquipmentNavigator from './EquipmentNavigator';
-import MaintenanceNavigator from './MaintenanceNavigator';
+import MaintenanceNavigator, { type MaintenanceStackParamList } from './MaintenanceNavigator';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -12,7 +12,7 @@ export type TabsParamList = {
   Inicio: undefined;
   Perfil: undefined;
   Equipos: undefined;
-  Mantenimiento: undefined;
+  Mantenimiento: NavigatorScreenParams<MaintenanceStackParamList> | undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
