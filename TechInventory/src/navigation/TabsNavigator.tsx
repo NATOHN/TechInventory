@@ -44,6 +44,7 @@ export default function TabsNavigator() {
           else if (route.name === 'Equipos') iconName = 'cube';
           // 1. Ícono de llave inglesa (construct = llave + destornillador cruzados) para Mantenimiento.
           else if (route.name === 'Mantenimiento') iconName = 'construct';
+          else if (route.name === 'Reportes') iconName = 'stats-chart';
           else if (route.name === 'Perfil') iconName = 'person';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
