@@ -12,18 +12,21 @@ export type AppUser = {
   correo: string;
   rol: UserRole;
   fechaCreacion: string;
+  // 4. Foto de perfil seleccionada por el propio usuario (uri local por ahora,
+  // se subiria a Supabase Storage cuando exista backend real).
+  fotoPerfil?: string;
 };
 
-// 4. Estado del modulo de usuarios.
+// 5. Estado del modulo de usuarios.
 type UsersState = {
   users: AppUser[];
-  // 5. Referencia al usuario que esta usando la app en este momento.
+  // 6. Referencia al usuario que esta usando la app en este momento.
   // Esto es un reemplazo temporal mientras no exista autenticacion real con Supabase;
   // cuando se conecte el login real, este valor se llenara con la sesion autenticada.
   currentUserId: string;
 };
 
-// 6. Estado inicial con datos de prueba: un administrador (la sesion actual) y un tecnico.
+// 7. Estado inicial con datos de prueba: un administrador (la sesion actual) y un tecnico.
 const initialState: UsersState = {
   users: [
     {
@@ -44,17 +47,18 @@ const initialState: UsersState = {
   currentUserId: 'USR-0001',
 };
 
-// 7. Creamos el Slice encargado de manejar los usuarios y tecnicos del sistema.
+// 8. Creamos el Slice encargado de manejar los usuarios y tecnicos del sistema.
 const usersSlice = createSlice({
   name: 'users',
   initialState,
   reducers: {
-    // 8. Crea un usuario nuevo dentro del sistema.
+    // 9. Crea un usuario nuevo dentro del sistema.
     crearUsuario: (state, action: PayloadAction<AppUser>) => {
       state.users.push(action.payload);
     },
 
-    // 9. Actualiza los datos editables de un usuario existente.
+    // 10. Actualiza los datos editables de un usuario existente, incluyendo su rol.
+    // Usado desde la administracion (Usuarios y tecnicos), no desde el perfil propio.
     actualizarUsuario: (
       state,
       action: PayloadAction<{ id: string; nombreCompleto: string; correo: string; rol: UserRole }>
@@ -67,15 +71,29 @@ const usersSlice = createSlice({
       }
     },
 
-    // 10. Elimina un usuario del sistema.
+    // 11. Actualiza unicamente nombre, correo y foto del propio usuario, sin tocar su rol.
+    // Usado desde la pantalla "Mi Perfil".
+    actualizarPerfilPropio: (
+      state,
+      action: PayloadAction<{ id: string; nombreCompleto: string; correo: string; fotoPerfil?: string }>
+    ) => {
+      const user = state.users.find((u) => u.id === action.payload.id);
+      if (user) {
+        user.nombreCompleto = action.payload.nombreCompleto;
+        user.correo = action.payload.correo;
+        user.fotoPerfil = action.payload.fotoPerfil;
+      }
+    },
+
+    // 12. Elimina un usuario del sistema.
     eliminarUsuario: (state, action: PayloadAction<{ id: string }>) => {
       state.users = state.users.filter((u) => u.id !== action.payload.id);
     },
   },
 });
 
-// 11. Exportamos las acciones para poder usarlas con dispatch en cualquier pantalla.
-export const { crearUsuario, actualizarUsuario, eliminarUsuario } = usersSlice.actions;
+// 13. Exportamos las acciones para poder usarlas con dispatch en cualquier pantalla.
+export const { crearUsuario, actualizarUsuario, actualizarPerfilPropio, eliminarUsuario } = usersSlice.actions;
 
-// 12. Exportamos el reducer para registrarlo en store.ts.
+// 14. Exportamos el reducer para registrarlo en store.ts.
 export default usersSlice.reducer;
