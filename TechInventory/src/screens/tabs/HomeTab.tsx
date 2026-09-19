@@ -5,13 +5,18 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 
+
 export default function HomeTab() {
   //Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
 
+
+
   // 2. Obtenemos la función t desde LanguageContext
   // para mostrar los textos traducidos.
   const { t } = useLanguage();
+
+
 
   return (
     <View style={[styles.container, {backgroundColor: colors.background}]}>
