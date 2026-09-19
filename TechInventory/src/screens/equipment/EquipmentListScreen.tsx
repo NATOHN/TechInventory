@@ -10,10 +10,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppSelector } from "../../redux/hooks";
-// Catálogos utilizados para mostrar todas las opciones disponibles
-// aunque actualmente no existan equipos asociados a ellas.
-import { BRANCH_OPTIONS, BRAND_OPTIONS } from "../../data/equipmentCatalogs";
-
+// Las marcas continúan siendo locales temporalmente.
+// Las sucursales y departamentos ahora se obtienen desde Supabase mediante Redux.
+import { BRAND_OPTIONS } from "../../data/equipmentCatalogs";
 
 type Props = NativeStackScreenProps<
     EquipmentStackParamList,
@@ -47,32 +46,29 @@ const EquipmentListScreen = ({ navigation }: Props) => {
     // Guarda la marca seleccionada en los filtros avanzados.
     const [selectedBrand, setSelectedBrand] = useState("todas");
 
-    // Obtenemos el arreglo de equipos almacenado en Redux, state representa todo el Store.
-    // equipment es nuestro Slice, equipments es el arreglo definido dentro del estado.
-    const equipos = useAppSelector((state) => state.equipment.equipments);
+    // Obtenemos los equipos y los catálogos cargados desde Supabase mediante Redux.
+const equipos = useAppSelector((state) => state.equipment.equipments);
+const sucursalesSupabase = useAppSelector((state) => state.sucursales.sucursales);
+const departamentosSupabase = useAppSelector((state) => state.departamentos.departamentos);
 
-    // Obtenemos todas las sucursales directamente desde el catálogo.
-    // Así una sucursal no desaparece aunque actualmente no tenga equipos.
-    const sucursales = BRANCH_OPTIONS.map((branch) => branch.name);
+// Mostramos todas las sucursales registradas en Supabase,
+// aunque actualmente no tengan ningún equipo asociado.
+const sucursales = sucursalesSupabase.map((branch) => branch.nombre);
 
+// Buscamos la sucursal seleccionada para poder relacionarla mediante su ID real.
+const sucursalSeleccionada = sucursalesSupabase.find(
+    (branch) => branch.nombre === selectedBranch
+);
 
-    // Obtenemos los departamentos disponibles.
-    // Si hay una sucursal seleccionada, mostramos solo los departamentos de esa sucursal.
-    const departamentos =
-        selectedBranch === "todas"
-            // Si no existe una sucursal específica seleccionada,
-            // mostramos los departamentos de todas las sucursales.
-            ? [...new Set(
-                BRANCH_OPTIONS.flatMap((branch) =>
-                    branch.departments.map((department) => department.name)
-                )
-            )]
-
-            // Si se seleccionó una sucursal, mostramos únicamente
-            // los departamentos registrados para esa sucursal.
-            : BRANCH_OPTIONS
-                .find((branch) => branch.name === selectedBranch)
-                ?.departments.map((department) => department.name) ?? [];
+// Si no existe una sucursal específica seleccionada mostramos todos los departamentos.
+// Si existe una selección, mostramos únicamente los departamentos relacionados con esa sucursal.
+const departamentos = selectedBranch === "todas"
+    ? [...new Set(departamentosSupabase.map((department) => department.nombre))]
+    : sucursalSeleccionada
+        ? departamentosSupabase
+            .filter((department) => department.sucursal_id === sucursalSeleccionada.id)
+            .map((department) => department.nombre)
+        : [];
 
 
 
