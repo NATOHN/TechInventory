@@ -7,6 +7,8 @@ import usersReducer from './usersSlice';
 import notificationsReducer, { cargarNotificaciones } from './notificationsSlice';
 // Importamos el reducer y la acción asíncrona que cargará las sucursales desde Supabase.
 import sucursalesReducer, { cargarSucursalesDesdeSupabase } from './sucursalesSlice';
+// Importamos el reducer de departamentos para mantener este catálogo dentro de Redux.
+import departamentosReducer from './departamentosSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 import { saveNotifications, loadNotifications } from './notificationsStorage';
@@ -25,6 +27,8 @@ export const store = configureStore({
         notifications: notificationsReducer,
         // La propiedad sucursales mantendrá en Redux el catálogo obtenido desde Supabase.
         sucursales: sucursalesReducer,
+        // La propiedad departamentos mantendrá en Redux el catálogo obtenido desde Supabase.
+departamentos: departamentosReducer,
     },
 });
 
