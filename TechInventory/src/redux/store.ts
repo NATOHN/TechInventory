@@ -8,7 +8,8 @@ import notificationsReducer, { cargarNotificaciones } from './notificationsSlice
 // Importamos el reducer y la acción asíncrona que cargará las sucursales desde Supabase.
 import sucursalesReducer, { cargarSucursalesDesdeSupabase } from './sucursalesSlice';
 // Importamos el reducer de departamentos para mantener este catálogo dentro de Redux.
-import departamentosReducer from './departamentosSlice';
+import departamentosReducer, { cargarDepartamentosDesdeSupabase } from './departamentosSlice';
+
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 import { saveNotifications, loadNotifications } from './notificationsStorage';
@@ -168,6 +169,24 @@ const initializeSucursales = async () => {
 
 // 21. Ejecutamos la carga de sucursales cuando se crea el Store.
 initializeSucursales();
+
+// 22. Cargamos el catálogo de departamentos directamente desde Supabase.
+// Redux conservará los departamentos y su relación mediante sucursal_id.
+const initializeDepartamentos = async () => {
+    try {
+        const departamentos = await store.dispatch(cargarDepartamentosDesdeSupabase()).unwrap();
+
+        // Mostramos temporalmente el resultado para comprobar la conexión Supabase → Redux.
+        console.log('Departamentos recuperados de Supabase:', departamentos.length);
+        console.log('Departamentos:', departamentos);
+    } catch (error) {
+        // Si Supabase rechaza la consulta, mostramos el error sin detener la aplicación.
+        console.log('Error al cargar departamentos desde Supabase:', error);
+    }
+};
+
+// 23. Ejecutamos la carga de departamentos cuando se crea el Store.
+initializeDepartamentos();
 
 // 6. RootState representa la estructura completa del estado global almacenado dentro de Redux.
 export type RootState = ReturnType<typeof store.getState>;
