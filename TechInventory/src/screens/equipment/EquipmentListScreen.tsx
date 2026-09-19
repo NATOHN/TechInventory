@@ -10,6 +10,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppSelector } from "../../redux/hooks";
+// Catálogos utilizados para mostrar todas las opciones disponibles
+// aunque actualmente no existan equipos asociados a ellas.
+import { BRANCH_OPTIONS, BRAND_OPTIONS } from "../../data/equipmentCatalogs";
 
 
 type Props = NativeStackScreenProps<
@@ -19,7 +22,7 @@ type Props = NativeStackScreenProps<
 
 
 // Definimos los únicos filtros de estado que puede seleccionar el usuario.
-type StatusFilter = | 'todos' | 'activo' | 'taller' | 'baja';
+type StatusFilter = | 'todos' | 'activo' | 'en_uso' | 'taller' | 'baja';
 
 const EquipmentListScreen = ({ navigation }: Props) => {
     //Obtenemos la paleta de colores actual desde ThemeContext.
@@ -48,23 +51,34 @@ const EquipmentListScreen = ({ navigation }: Props) => {
     // equipment es nuestro Slice, equipments es el arreglo definido dentro del estado.
     const equipos = useAppSelector((state) => state.equipment.equipments);
 
-    const sucursales = [...new Set(equipos.map((equipo) => equipo.sucursal))];
+    // Obtenemos todas las sucursales directamente desde el catálogo.
+    // Así una sucursal no desaparece aunque actualmente no tenga equipos.
+    const sucursales = BRANCH_OPTIONS.map((branch) => branch.name);
+
 
     // Obtenemos los departamentos disponibles.
     // Si hay una sucursal seleccionada, mostramos solo los departamentos de esa sucursal.
-    const departamentos = [...new Set(
-        equipos
-            .filter((equipo) => selectedBranch === "todas" || equipo.sucursal === selectedBranch)
-            .map((equipo) => equipo.departamento)
-    )];
+    const departamentos =
+        selectedBranch === "todas"
+            // Si no existe una sucursal específica seleccionada,
+            // mostramos los departamentos de todas las sucursales.
+            ? [...new Set(
+                BRANCH_OPTIONS.flatMap((branch) =>
+                    branch.departments.map((department) => department.name)
+                )
+            )]
+
+            // Si se seleccionó una sucursal, mostramos únicamente
+            // los departamentos registrados para esa sucursal.
+            : BRANCH_OPTIONS
+                .find((branch) => branch.name === selectedBranch)
+                ?.departments.map((department) => department.name) ?? [];
+
+
 
     // Obtenemos las marcas disponibles según la sucursal y el departamento seleccionados actualmente.
-    const marcas = [...new Set(
-        equipos
-            .filter((equipo) => selectedBranch === "todas" || equipo.sucursal === selectedBranch)
-            .filter((equipo) => selectedDepartment === "todos" || equipo.departamento === selectedDepartment)
-            .map((equipo) => equipo.marca)
-    )];
+    //Las marcas también provienen del catálogo independiente.
+    const marcas = BRAND_OPTIONS.map((brand) => brand.name);
 
     // Creamos una versión del texto de búsqueda sin espacios al inicio/final y en minúsculas.
     const textoBusqueda = searchText.trim().toLowerCase();
@@ -92,32 +106,84 @@ const EquipmentListScreen = ({ navigation }: Props) => {
         );
     });
 
-    // Calculamos cuántos equipos hay en cada estado tomando como base el resultado de la búsqueda.
-    const totalTodos = equiposSegunBusqueda.length;
 
-    const totalActivos = equiposSegunBusqueda.filter((equipo) => equipo.status === 'activo').length;
+    // Primero aplicamos únicamente los filtros avanzados.
+    // Esto permite que los contadores de estado también respeten
+    // sucursal, departamento y marca.
+    const equiposSegunFiltrosAvanzados = equiposSegunBusqueda.filter((equipo) => {
 
-    const totalTaller = equiposSegunBusqueda.filter((equipo) => equipo.status === 'taller').length;
+        const coincideSucursal =
+            selectedBranch === "todas" ||
+            equipo.sucursal === selectedBranch;
 
-    const totalBaja = equiposSegunBusqueda.filter((equipo) => equipo.status === 'baja').length;
+        const coincideDepartamento =
+            selectedDepartment === "todos" ||
+            equipo.departamento === selectedDepartment;
+
+        const coincideMarca =
+            selectedBrand === "todas" ||
+            equipo.marca === selectedBrand;
+
+        return (
+            coincideSucursal &&
+            coincideDepartamento &&
+            coincideMarca
+        );
+    });
+
+
+
+    // Calculamos los contadores utilizando los resultados
+    // de la búsqueda y los filtros avanzados.
+    const totalTodos = equiposSegunFiltrosAvanzados.length;
+
+    // Disponible = activo pero sin empleado asignado.
+    // Conservamos el nombre totalActivos para no cambiar variables existentes.
+    const totalActivos = equiposSegunFiltrosAvanzados.filter(
+        (equipo) =>
+            equipo.status === 'activo' &&
+            (!equipo.empleadoAsignado || equipo.empleadoAsignado === 'Sin asignar')
+    ).length;
+
+    // En uso = activo y con un empleado asignado.
+    const totalEnUso = equiposSegunFiltrosAvanzados.filter(
+        (equipo) =>
+            equipo.status === 'activo' &&
+            !!equipo.empleadoAsignado &&
+            equipo.empleadoAsignado !== 'Sin asignar'
+    ).length;
+
+    const totalTaller = equiposSegunFiltrosAvanzados.filter((equipo) => equipo.status === 'taller').length;
+
+    const totalBaja = equiposSegunFiltrosAvanzados.filter((equipo) => equipo.status === 'baja').length;
 
 
     // Aplicamos el filtro de estado y también el filtro avanzado de sucursal.
-    const equiposFiltrados = equiposSegunBusqueda.filter((equipo) => {
-        //Verificamos si el equipo coincide con el estado seleccionado.
-        const coincideEstado = statusFilter === 'todos' || equipo.status === statusFilter;
+    const equiposFiltrados = equiposSegunFiltrosAvanzados.filter((equipo) => {
+        // Todos muestra cualquier equipo.
+        if (statusFilter === 'todos') return true;
 
-        // Verificamos si el equipo pertenece a la sucursal seleccionada.
-        const coincideSucursal = selectedBranch === 'todas' || equipo.sucursal === selectedBranch;
+        // En uso: activo y con empleado asignado.
+        if (statusFilter === 'en_uso') {
+            return (
+                equipo.status === 'activo' &&
+                !!equipo.empleadoAsignado &&
+                equipo.empleadoAsignado !== 'Sin asignar'
+            );
+        }
 
-        // Verificamos si pertenece al departamento seleccionado.
-        const coincideDepartamento = selectedDepartment === 'todos' || equipo.departamento === selectedDepartment;
+        // Disponible: activo y sin empleado asignado.
+        if (statusFilter === 'activo') {
+            return (
+                equipo.status === 'activo' &&
+                (!equipo.empleadoAsignado || equipo.empleadoAsignado === 'Sin asignar')
+            );
+        }
 
-        const coincideMarca = selectedBrand === 'todas' || equipo.marca === selectedBrand;
-
-        //El equipo se muestra solamente si cumple ambos filtros.
-        return coincideEstado && coincideSucursal && coincideDepartamento && coincideMarca;
+        // Mantenimiento y Baja continúan funcionando exactamente igual.
+        return equipo.status === statusFilter;
     });
+
 
     // Indica si existe al menos un filtro avanzado activo.
     const hasAdvancedFilters = selectedBranch !== "todas" || selectedDepartment !== "todos" || selectedBrand !== "todas";
@@ -144,8 +210,8 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                         </View>
                         {/* Botón para los filtros avanzados */}
                         <TouchableOpacity
-                            style={[styles.advancedFilterButton, { 
-                                backgroundColor: hasAdvancedFilters ? colors.primary : colors.surface, 
+                            style={[styles.advancedFilterButton, {
+                                backgroundColor: hasAdvancedFilters ? colors.primary : colors.surface,
                                 borderColor: hasAdvancedFilters ? colors.primary : colors.border,
                             }]}
                             onPress={() => setShowFilters(true)}
@@ -155,7 +221,11 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                     </View>
 
                     {/* Contenedor de los filtros por estado */}
-                    <View style={styles.filtersContainer}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.filtersContainer}
+                    >
                         {/* Filtro Todos */}
                         <TouchableOpacity style={[styles.filterChip, {
                             backgroundColor: statusFilter === 'todos' ? colors.primary : colors.surface,
@@ -164,7 +234,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                             onPress={() => setStatusFilter('todos')}
                         >
                             <Text style={[styles.filterText, { color: statusFilter === 'todos' ? colors.background : colors.textSecondary, }]}>
-                                {t("allMasculine")} ({equipos.length})
+                                {t("allMasculine")} ({totalTodos})
                             </Text>
                         </TouchableOpacity>
 
@@ -183,6 +253,31 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                 style={[styles.filterText, { color: statusFilter === 'activo' ? colors.background : colors.textSecondary, }]}
                             >
                                 {`${t("statusActive")} (${totalActivos})`}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Filtro En uso */}
+                        <TouchableOpacity
+                            style={[
+                                styles.filterChip,
+                                {
+                                    backgroundColor: statusFilter === 'en_uso' ? colors.primary : colors.surface,
+                                    borderColor: statusFilter === 'en_uso' ? colors.primary : colors.border,
+                                }
+                            ]}
+                            onPress={() => setStatusFilter('en_uso')}
+                        >
+                            <Text
+                                style={[
+                                    styles.filterText,
+                                    {
+                                        color: statusFilter === 'en_uso'
+                                            ? colors.background
+                                            : colors.textSecondary,
+                                    }
+                                ]}
+                            >
+                                {`${t("statusInUse")} (${totalEnUso})`}
                             </Text>
                         </TouchableOpacity>
 
@@ -214,7 +309,7 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                             </Text>
                         </TouchableOpacity>
 
-                    </View>
+                    </ScrollView>
 
 
                     {equiposFiltrados.map((equipo) => {
@@ -284,7 +379,14 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                             borderColor: selectedBranch === "todas" ? colors.primary : colors.border
                                         }
                                     ]}
-                                    onPress={() => setSelectedBranch("todas")}
+                                    onPress={() => {
+                                        // Cambiamos la sucursal y limpiamos los filtros dependientes
+                                        // para evitar conservar selecciones anteriores incompatibles.
+                                        setSelectedBranch("todas");
+                                        setSelectedDepartment("todos");
+                                        setSelectedBrand("todas");
+
+                                    }}
                                 >
                                     <Text style={{ color: selectedBranch === "todas" ? colors.background : colors.textSecondary }}>
                                         {t("allFeminine")}
@@ -301,7 +403,13 @@ const EquipmentListScreen = ({ navigation }: Props) => {
                                                 borderColor: selectedBranch === sucursal ? colors.primary : colors.border
                                             }
                                         ]}
-                                        onPress={() => setSelectedBranch(sucursal)}
+                                        onPress={() => {
+                                            // Al seleccionar otra sucursal reiniciamos departamento y marca.
+                                            setSelectedBranch(sucursal);
+                                            setSelectedDepartment("todos");
+                                            setSelectedBrand("todas");
+
+                                        }}
                                     >
                                         <Text style={{ color: selectedBranch === sucursal ? colors.background : colors.textSecondary }}>
                                             {sucursal}
@@ -435,17 +543,17 @@ const styles = StyleSheet.create({
     // Contenedor horizontal de los filtros.
     filtersContainer: {
         flexDirection: 'row',
-        width: '100%',
-        gap: 6,
+        gap: 8,
+        paddingRight: 20,
         marginBottom: 16,
     },
 
     // Diseño de cada filtro.
     filterChip: {
-        flex: 1,
+        flexShrink: 0,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 4,
+        paddingHorizontal: 16,
         paddingVertical: 9,
         borderRadius: 20,
         borderWidth: 1,

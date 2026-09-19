@@ -30,6 +30,12 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Buscamos en Redux el equipo que corresponde al código recibido.
     const equipoRedux = useAppSelector((state) => state.equipment.equipments.find((equipo) => equipo.codigo === codigo));
 
+    // Leemos los mantenimientos para evitar abrir un segundo proceso
+// sobre el mismo equipo desde el detalle.
+const maintenances = useAppSelector(
+    (state) => state.maintenance.maintenances
+);
+
 
     // Si Redux todavía no encuentra el equipo, usamos temporalmente
     // los datos recibidos mediante la navegación.
@@ -104,6 +110,15 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Solicita confirmación antes de dar de baja un equipo.
     // El equipo no se elimina, únicamente cambia su estado a "baja".
     const handleDarDeBaja = () => {
+        // No permitimos dar de baja un equipo que todavía tenga un empleado asignado.
+        if (empleadoAsignado && empleadoAsignado !== "Sin asignar") {
+            Alert.alert(
+                "Equipo asignado",
+                "Antes de dar de baja este equipo debes quitar el empleado asignado."
+            );
+            return;
+        }
+
         Alert.alert(
             t("decommissionTitle"),
             `${t("decommissionMessageStart")} ${equipo.codigo}${t("decommissionMessageEnd")}`,
@@ -167,6 +182,62 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
             ]
         );
     };
+
+
+    // Abre el mantenimiento correspondiente al equipo actual.
+const handleAbrirMantenimiento = () => {
+
+    // Los equipos dados de baja no pueden recibir mantenimiento.
+    if (equipo.status === "baja") {
+        Alert.alert(
+            "Equipo dado de baja",
+            `El equipo ${equipo.codigo} está dado de baja y no puede recibir mantenimiento.`
+        );
+        return;
+    }
+
+    // Verificamos si ya existe un mantenimiento abierto para este equipo.
+    const mantenimientoEnProceso = maintenances.find(
+        (mantenimiento) =>
+            mantenimiento.codigoEquipo === equipo.codigo &&
+            mantenimiento.status === "en_proceso"
+    );
+
+    // Si ya existe, permitimos abrir ese mantenimiento en vez de crear otro.
+    if (mantenimientoEnProceso) {
+        Alert.alert(
+            "Mantenimiento en proceso",
+            `El equipo ${equipo.codigo} ya tiene un mantenimiento en proceso.`,
+            [
+                {
+                    text: "Cancelar",
+                    style: "cancel",
+                },
+                {
+                    text: "Abrir mantenimiento",
+                    onPress: () =>
+                        navigation.getParent()?.navigate("Mantenimiento", {
+                            screen: "NewMaintenanceScreen",
+                            params: {
+                                maintenanceId: mantenimientoEnProceso.id,
+                            },
+                        }),
+                },
+            ]
+        );
+        return;
+    }
+
+    // Como ya conocemos el equipo, abrimos directamente el formulario
+    // sin necesidad de volver a escanear el código QR.
+    navigation.getParent()?.navigate("Mantenimiento", {
+        screen: "NewMaintenanceScreen",
+        params: {
+            codigoEquipo: equipo.codigo,
+        },
+    });
+};
+    
 
     return (
         //ScrollView
@@ -245,7 +316,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                     <View style={styles.actionsRow}>
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
-                            onPress={() => console.log("Abrir mantenimiento")}
+                            onPress= {handleAbrirMantenimiento} 
                         >
                             <Ionicons name="construct-outline" size={24} color={colors.primary} />
                             <Text style={[styles.actionText, { color: colors.text }]}>{t("maintenanceAction")}</Text>

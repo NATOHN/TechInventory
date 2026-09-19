@@ -26,15 +26,24 @@ export type ChecklistItem = {
 // almacenado dentro de Redux.
 export type Maintenance = {
   id: string;
-  codigoEquipo: string;       // referencia al equipo (Equipment.codigo)
+  codigoMantenimiento?: string;
+  codigoEquipo: string;
+
+
   tecnico: string;
   tipo: MaintenanceType;
   prioridad?: MaintenancePriority;
   checklist: ChecklistItem[];
   repuestos: MaintenancePart[];
   descripcion: string;
-  estadoFinal?: string;       // ej. "Operativo", "Requiere seguimiento"
-  firmaBase64?: string;       // imagen de la firma digital codificada
+
+  estadoFinal?: string;
+  motivoBaja?: string;
+
+  firmaBase64?: string;
+  firmadoPorNombre?: string;
+  fechaFirma?: string;
+
   status: MaintenanceStatus;
   fechaInicio: string;
   fechaFinalizacion?: string;
@@ -61,6 +70,7 @@ const initialState: MaintenanceState = {
   maintenances: [
     {
       id: 'MT-0001',
+      codigoMantenimiento: 'MT-0001',
       codigoEquipo: 'EQ-0002',
       tecnico: 'Carlos López',
       tipo: 'correctivo',
@@ -73,6 +83,7 @@ const initialState: MaintenanceState = {
     },
     {
       id: 'MT-0002',
+      codigoMantenimiento: 'MT-0002',
       codigoEquipo: 'EQ-0001',
       tecnico: 'Josue Meza',
       tipo: 'preventivo',
@@ -107,6 +118,12 @@ const maintenanceSlice = createSlice({
       state.maintenances.push(action.payload);
     },
 
+    // Recupera los mantenimientos guardados anteriormente en AsyncStorage.
+    cargarMantenimientos: (state, action: PayloadAction<Maintenance[]>) => {
+      // Reemplazamos los mantenimientos iniciales por los recuperados.
+      state.maintenances = action.payload;
+    },
+
     // Actualiza los datos de un mantenimiento que sigue en_proceso, sin finalizarlo.
     // Ahora tambien permite editar tecnico, tipo y prioridad (antes solo checklist/repuestos/descripcion/estadoFinal).
     actualizarMantenimiento: (
@@ -120,6 +137,7 @@ const maintenanceSlice = createSlice({
         repuestos: MaintenancePart[];
         descripcion: string;
         estadoFinal?: string;
+        motivoBaja?: string;
       }>
     ) => {
       // 16. Buscamos el mantenimiento utilizando su id único.
@@ -134,13 +152,19 @@ const maintenanceSlice = createSlice({
         mant.repuestos = action.payload.repuestos;
         mant.descripcion = action.payload.descripcion;
         mant.estadoFinal = action.payload.estadoFinal;
+        // Conservamos también el motivo asociado a una posible baja.
+        mant.motivoBaja = action.payload.motivoBaja;
       }
     },
 
     // Finaliza un mantenimiento existente, adjuntando la firma digital.
     finalizarMantenimiento: (
       state,
-      action: PayloadAction<{ id: string; firmaBase64: string }>
+      action: PayloadAction<{
+        id: string;
+        firmaBase64: string
+        firmadoPorNombre?: string;
+      }>
     ) => {
       // 18. Buscamos el mantenimiento utilizando su id único.
       const mant = state.maintenances.find((m) => m.id === action.payload.id);
@@ -148,15 +172,27 @@ const maintenanceSlice = createSlice({
       // 19. Si encontramos el mantenimiento, actualizamos su estado y datos finales.
       if (mant) {
         mant.status = 'finalizado';
-        mant.firmaBase64 = action.payload.firmaBase64;
         mant.fechaFinalizacion = new Date().toISOString();
+        mant.firmaBase64 = action.payload.firmaBase64;
+
+        // Conservamos quién firmó la conformidad en ese momento.
+        // Así un cambio futuro de responsable no altera mantenimientos antiguos.
+        mant.firmadoPorNombre = action.payload.firmadoPorNombre;
+
+        // Registramos también la fecha exacta de la firma.
+        mant.fechaFirma = new Date().toISOString();
       }
     },
   },
 });
 
 // 20. Exportamos las acciones para poder usarlas con dispatch en cualquier pantalla.
-export const { crearMantenimiento, actualizarMantenimiento, finalizarMantenimiento } = maintenanceSlice.actions;
+export const {
+  crearMantenimiento,
+  cargarMantenimientos,
+  actualizarMantenimiento,
+  finalizarMantenimiento
+} = maintenanceSlice.actions;
 
 // 21. Exportamos el reducer para registrarlo en store.ts.
 export default maintenanceSlice.reducer;

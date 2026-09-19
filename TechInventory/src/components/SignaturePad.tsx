@@ -51,8 +51,14 @@ const SignaturePad = forwardRef<SignaturePadRef, {}>((_props, ref) => {
 
       // 10. Al soltar el dedo, guardamos el trazo completo dentro del arreglo de trazos.
       onPanResponderRelease: () => {
-        setPaths((prev) => [...prev, currentPath.current]);
+        const completedPath = [...currentPath.current];
+        // Solo guardamos trazos que realmente contienen movimiento.
+        if (completedPath.length > 1) {
+          setPaths((prev) => [...prev, completedPath]);
+        }
+        
         currentPath.current = [];
+        forceRender((n) => n + 1);
       },
     })
   ).current;
@@ -64,7 +70,10 @@ const SignaturePad = forwardRef<SignaturePadRef, {}>((_props, ref) => {
       currentPath.current = [];
       forceRender((n) => n + 1);
     },
-    isEmpty: () => paths.length === 0 && currentPath.current.length === 0,
+    // Consideramos que existe firma únicamente si hay un trazo real dibujado.
+    isEmpty: () => 
+      !paths.some((path) => path.length > 1) &&
+      currentPath.current.length <= 1,
   }));
 
   return (
