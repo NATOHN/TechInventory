@@ -2,11 +2,18 @@
 import { supabase } from "../lib/supabase";
 
 // Importamos únicamente los tipos necesarios.
-// Redux conserva su estructura actual y este servicio se encarga de traducirla a PostgreSQL.
+// Redux conserva su estructura actual y este servicio traduce sus datos a PostgreSQL.
 import type { Equipment } from "../redux/equipmentSlice";
 import type { Sucursal } from "./sucursalesService";
 import type { Departamento } from "./departamentosService";
 import type { Empleado } from "./empleadosService";
+
+// Importamos la sincronización de los historiales que ya forman parte del Equipment.
+import {
+    sincronizarHistorialEstados,
+    sincronizarHistorialUbicaciones,
+} from "./historialEquiposService";
+
 
 // Catálogos necesarios para convertir los nombres utilizados actualmente
 // por Redux en los IDs relacionales almacenados en Supabase.
@@ -16,8 +23,9 @@ type CatalogosEquipo = {
     empleados: Empleado[];
 };
 
+
 // Sincroniza el estado actual de un equipo con public.equipos.
-// Utilizamos codigo como identificador estable para decidir si insertar o actualizar.
+// Después sincroniza también sus historiales sin alterar Redux.
 export const sincronizarEquipoConSupabase = async (
     equipo: Equipment,
     catalogos: CatalogosEquipo
@@ -31,8 +39,7 @@ export const sincronizarEquipoConSupabase = async (
         throw new Error(`No se encontró la sucursal "${equipo.sucursal}" en Supabase.`);
     }
 
-    // Localizamos el departamento y además comprobamos que pertenezca
-    // realmente a la sucursal seleccionada.
+    // Comprobamos que el departamento pertenezca realmente a la sucursal seleccionada.
     const departamento = catalogos.departamentos.find(
         (item) =>
             item.nombre === equipo.departamento &&
@@ -45,8 +52,7 @@ export const sincronizarEquipoConSupabase = async (
         );
     }
 
-    // "Sin asignar" continúa siendo la representación utilizada actualmente por Redux.
-    // En PostgreSQL una ausencia de empleado se almacena correctamente como null.
+    // Redux utiliza "Sin asignar", mientras PostgreSQL representa esa ausencia mediante null.
     const nombreEmpleado = equipo.empleadoAsignado?.trim();
     const sinEmpleado =
         !nombreEmpleado ||
@@ -60,17 +66,16 @@ export const sincronizarEquipoConSupabase = async (
                 item.departamento_id === departamento.id
         );
 
-    // Si Redux indica un empleado pero no existe en Supabase,
-    // detenemos la sincronización para no guardar una relación incorrecta.
+    // Evitamos relacionar el equipo con un empleado incorrecto o inexistente.
     if (!sinEmpleado && !empleado) {
         throw new Error(
             `No se encontró el empleado "${nombreEmpleado}" dentro del departamento seleccionado.`
         );
     }
 
-    // Upsert nos permite utilizar el mismo método tanto para registrar
-    // como para actualizar un equipo existente mediante su código estable.
-    const { error } = await supabase
+    // Insertamos o actualizamos el equipo utilizando su código estable.
+    // Solicitamos de vuelta el ID técnico porque los historiales lo utilizan como relación.
+    const { data: equipoGuardado, error } = await supabase
         .from("equipos")
         .upsert(
             {
@@ -87,8 +92,23 @@ export const sincronizarEquipoConSupabase = async (
             {
                 onConflict: "codigo",
             }
-        );
+        )
+        .select("id")
+        .single();
 
-    // Dejamos que Store controle y muestre cualquier problema de sincronización.
     if (error) throw error;
+
+    // Una vez confirmada la existencia del equipo en PostgreSQL,
+    // sincronizamos los historiales asociados al mismo ID técnico.
+    await Promise.all([
+        sincronizarHistorialUbicaciones(
+            equipoGuardado.id,
+            equipo.historialUbicaciones ?? []
+        ),
+
+        sincronizarHistorialEstados(
+            equipoGuardado.id,
+            equipo.historialEstados ?? []
+        ),
+    ]);
 };
