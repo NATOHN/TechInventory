@@ -35,6 +35,10 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     //Obtenemos los equipos que actualmente están almacenados dentro de Redux.
     const equipos = useAppSelector((state) => state.equipment.equipments);
 
+    // Obtenemos desde Redux las sucursales que fueron cargadas previamente desde Supabase.
+    // Por ahora solamente reemplazamos la fuente del selector de sucursal.
+    const sucursalesSupabase = useAppSelector((state) => state.sucursales.sucursales);
+
 
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
@@ -423,35 +427,31 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Creamos una opción por cada sucursal registrada. */}
-                        {BRANCH_OPTIONS.map((branch) => (
+
+                        {/* Creamos una opción por cada sucursal cargada desde Supabase y almacenada en Redux. */}
+                        {sucursalesSupabase.map((branch) => (
                             <TouchableOpacity
                                 key={branch.id}
-                                style={[styles.selectionOption, {
-                                    borderBottomColor: colors.border
-                                }]}
+                                style={[styles.selectionOption, { borderBottomColor: colors.border }]}
                                 onPress={() => {
-                                    setSucursal(branch.name);
+                                    // Conservamos el nombre en el formulario para no modificar todavía
+                                    // la estructura actual de Equipment ni la lógica que ya funciona.
+                                    setSucursal(branch.nombre);
 
-                                    // Reiniciamos departamento para evitar conservar uno
-                                    // que pertenezca a una sucursal diferente.
+                                    // Reiniciamos departamento y empleado para evitar conservar
+                                    // información perteneciente a otra sucursal.
                                     setDepartamento("");
                                     setEmpleadoAsignado("");
                                     setShowBranchModal(false);
-
                                 }}
                             >
                                 <Text style={[styles.selectionOptionText, { color: colors.text }]}>
-                                    {branch.name}
+                                    {branch.nombre}
                                 </Text>
 
-                                {/* Mostramos cuál sucursal está seleccionada actualmente. */}
-                                {sucursal === branch.name && (
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={22}
-                                        color={colors.primary}
-                                    />
+                                {/* Indicamos visualmente cuál sucursal está seleccionada actualmente. */}
+                                {sucursal === branch.nombre && (
+                                    <Ionicons name="checkmark" size={22} color={colors.primary} />
                                 )}
                             </TouchableOpacity>
                         ))}
