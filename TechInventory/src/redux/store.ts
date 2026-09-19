@@ -3,8 +3,13 @@ import { configureStore } from '@reduxjs/toolkit';
 
 import equipmentReducer, { cargarEquipos } from './equipmentSlice';
 import maintenanceReducer, { cargarMantenimientos } from './maintenanceSlice';
+import usersReducer from './usersSlice';
+import notificationsReducer, { cargarNotificaciones } from './notificationsSlice';
+// Importamos el reducer de sucursales para mantener el catálogo de Supabase dentro de Redux.
+import sucursalesReducer from './sucursalesSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
+import { saveNotifications, loadNotifications } from './notificationsStorage';
 
 
 // 2. Creamos el Store principal de TechInventory.
@@ -14,6 +19,12 @@ export const store = configureStore({
         equipment: equipmentReducer,
         // 4. La propiedad maintenance representará todo el estado manejado por maintenanceSlice.
         maintenance: maintenanceReducer,
+        // 5. La propiedad users representará todo el estado manejado por usersSlice.
+        users: usersReducer,
+        // 6. La propiedad notifications representará todo el estado manejado por notificationsSlice.
+        notifications: notificationsReducer,
+        // La propiedad sucursales mantendrá en Redux el catálogo obtenido desde Supabase.
+        sucursales: sucursalesReducer,
     },
 });
 
@@ -55,6 +66,13 @@ store.subscribe(() => {
             console.log('Error al guardar los mantenimientos:', error);
         });
     }
+
+    // 10a. Obtenemos el arreglo completo de notificaciones y lo guardamos tambien en AsyncStorage.
+    const notifications = store.getState().notifications.notifications;
+
+    saveNotifications(notifications).catch((error) => {
+        console.log('Error al guardar las notificaciones:', error);
+    });
 });
 
 
@@ -102,6 +120,31 @@ const initializeMaintenances = async () => {
 
 // Ejecutamos la recuperación al crear el Store.
 initializeMaintenances();
+
+
+// 16. Creamos una función encargada de recuperar las notificaciones cuando inicia la aplicación.
+const initializeNotifications = async () => {
+
+    // 17. Intentamos recuperar las notificaciones almacenadas anteriormente.
+    const savedNotifications = await loadNotifications();
+
+    // 18. Si AsyncStorage contiene notificaciones, reemplazamos el estado inicial de Redux
+    // por los datos recuperados.
+    if (savedNotifications !== null) {
+
+        store.dispatch(
+            cargarNotificaciones(savedNotifications)
+        );
+
+        console.log(
+            'Notificaciones recuperadas de AsyncStorage:',
+            savedNotifications.length
+        );
+    }
+};
+
+// 19. Ejecutamos la carga de notificaciones cuando se crea el Store.
+initializeNotifications();
 
 
 // 6. RootState representa la estructura completa del estado global almacenado dentro de Redux.
