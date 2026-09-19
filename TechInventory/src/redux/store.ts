@@ -9,6 +9,8 @@ import notificationsReducer, { cargarNotificaciones } from './notificationsSlice
 import sucursalesReducer, { cargarSucursalesDesdeSupabase } from './sucursalesSlice';
 // Importamos el reducer de departamentos para mantener este catálogo dentro de Redux.
 import departamentosReducer, { cargarDepartamentosDesdeSupabase } from './departamentosSlice';
+// Importamos el reducer y la acción asíncrona que cargará los empleados desde Supabase.
+import empleadosReducer, { cargarEmpleadosDesdeSupabase } from './empleadosSlice';
 
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
@@ -29,7 +31,9 @@ export const store = configureStore({
         // La propiedad sucursales mantendrá en Redux el catálogo obtenido desde Supabase.
         sucursales: sucursalesReducer,
         // La propiedad departamentos mantendrá en Redux el catálogo obtenido desde Supabase.
-departamentos: departamentosReducer,
+        departamentos: departamentosReducer,
+        // La propiedad empleados mantendrá en Redux el catálogo obtenido desde Supabase.
+        empleados: empleadosReducer,
     },
 });
 
@@ -187,6 +191,23 @@ const initializeDepartamentos = async () => {
 
 // 23. Ejecutamos la carga de departamentos cuando se crea el Store.
 initializeDepartamentos();
+
+// 24. Cargamos el catálogo de empleados directamente desde Supabase.
+const initializeEmpleados = async () => {
+    try {
+        const empleados = await store.dispatch(cargarEmpleadosDesdeSupabase()).unwrap();
+
+        // Validación temporal para confirmar Supabase → Redux.
+        console.log('Empleados recuperados de Supabase:', empleados.length);
+        console.log('Empleados:', empleados);
+    } catch (error) {
+        // Un error en el catálogo no debe detener el resto de la aplicación.
+        console.log('Error al cargar empleados desde Supabase:', error);
+    }
+};
+
+// 25. Ejecutamos la carga de empleados cuando se crea el Store.
+initializeEmpleados();
 
 // 6. RootState representa la estructura completa del estado global almacenado dentro de Redux.
 export type RootState = ReturnType<typeof store.getState>;
