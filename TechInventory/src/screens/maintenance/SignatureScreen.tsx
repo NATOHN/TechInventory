@@ -7,13 +7,12 @@ import ViewShot from 'react-native-view-shot';
 // Permite compartir automáticamente la constancia después de firmar.
 import * as Sharing from 'expo-sharing';
 
-
-
 import { useTheme } from '../../context/ThemeContext';
 // Permite mostrar la constancia en el idioma seleccionado por el usuario.
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { finalizarMantenimiento } from '../../redux/maintenanceSlice';
+import { agregarNotificacion } from '../../redux/notificationsSlice';
 // Permite devolver el equipo a Activo cuando termina correctamente el mantenimiento.
 import { activarEquipoTrasMantenimiento, cambiarUbicacionEquipo, darDeBajaEquipoPorMantenimiento, } from '../../redux/equipmentSlice';
 // Genera la constancia PDF utilizando la información final del mantenimiento.
@@ -34,7 +33,7 @@ export default function SignatureScreen({ navigation, route }: any) {
   // 4. Leemos el id del mantenimiento que se va a finalizar con esta firma.
   const { maintenanceId } = route.params;
 
-  // Buscamos el mantenimiento que se está finalizando.
+  // 5. Buscamos el mantenimiento que se está finalizando.
   const maintenance = useAppSelector((state) =>
     state.maintenance.maintenances.find((item) => item.id === maintenanceId)
   );
@@ -60,13 +59,13 @@ export default function SignatureScreen({ navigation, route }: any) {
       : false
   );
 
-  // 5. Referencia al SignaturePad, para poder limpiarlo y consultar si esta vacio.
+  // 6. Referencia al SignaturePad, para poder limpiarlo y consultar si esta vacio.
   const signatureRef = useRef<SignaturePadRef>(null);
 
-  // 6. Referencia al ViewShot que envuelve el lienzo, para poder capturarlo como imagen.
+  // 7. Referencia al ViewShot que envuelve el lienzo, para poder capturarlo como imagen.
   const viewShotRef = useRef<ViewShot>(null);
 
-  // 7. Controla que no se pueda confirmar dos veces mientras se procesa la captura.
+  // 8. Controla que no se pueda confirmar dos veces mientras se procesa la captura.
   const [guardando, setGuardando] = useState(false);
 
   // Traduce visualmente el resultado final sin modificar el valor guardado.
@@ -90,12 +89,12 @@ export default function SignatureScreen({ navigation, route }: any) {
     return label;
   };
 
-  // 8. Limpia el lienzo de firma para volver a empezar.
+  // 9. Limpia el lienzo de firma para volver a empezar.
   const handleLimpiar = () => {
     signatureRef.current?.clear();
   };
 
-  // 9. Captura la firma como imagen PNG y finaliza el mantenimiento en Redux.
+  // 10. Captura la firma como imagen PNG y finaliza el mantenimiento en Redux.
   const handleConfirmar = async () => {
     if (signatureRef.current?.isEmpty()) {
       Alert.alert(
@@ -130,12 +129,24 @@ export default function SignatureScreen({ navigation, route }: any) {
       const firmadoPorNombre = equipo.empleadoAsignado || 'Sin asignar';
       const fechaFinalizacion = new Date().toISOString();
 
-      // Finalizamos el mantenimiento y almacenamos la firma.
+      // 13. Finalizamos el mantenimiento, guardando la firma capturada.
       dispatch(
         finalizarMantenimiento({
           id: maintenanceId,
           firmaBase64: uri,
           firmadoPorNombre,
+        })
+      );
+
+      // 14. Notificamos que el mantenimiento fue finalizado.
+      dispatch(
+        agregarNotificacion({
+          id: `NTF-${Date.now()}`,
+          tipo: 'fin',
+          mensaje: `Se finalizó el mantenimiento del equipo ${maintenance.codigoEquipo}`,
+          codigoEquipo: maintenance.codigoEquipo,
+          leida: false,
+          fecha: new Date().toISOString(),
         })
       );
 
@@ -278,11 +289,11 @@ export default function SignatureScreen({ navigation, route }: any) {
   };
 
   return (
-    // 14. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
+    // 15. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
 
-        {/* 15. Encabezado con boton de regreso y titulo */}
+        {/* 16. Encabezado con boton de regreso y titulo */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -449,7 +460,7 @@ export default function SignatureScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        {/* 16. ViewShot envuelve el lienzo para poder capturarlo como imagen al confirmar */}
+        {/* 17. ViewShot envuelve el lienzo para poder capturarlo como imagen al confirmar */}
         <ViewShot
           ref={viewShotRef}
           options={{ format: 'png', quality: 0.9, result: 'data-uri' }}
@@ -458,7 +469,7 @@ export default function SignatureScreen({ navigation, route }: any) {
           <SignaturePad ref={signatureRef} />
         </ViewShot>
 
-        {/* 17. Botones de accion: limpiar el lienzo o confirmar la firma */}
+        {/* 18. Botones de accion: limpiar el lienzo o confirmar la firma */}
         <View style={styles.buttonsRow}>
           <TouchableOpacity
             style={[styles.clearButton, { borderColor: colors.border }]}
