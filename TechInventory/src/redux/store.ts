@@ -15,6 +15,8 @@ import empleadosReducer, { cargarEmpleadosDesdeSupabase } from './empleadosSlice
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 import { saveNotifications, loadNotifications } from './notificationsStorage';
+// Sincroniza con Supabase únicamente los equipos que realmente cambian en Redux.
+import { sincronizarEquipoConSupabase } from '../services/equiposService';
 
 
 // 2. Creamos el Store principal de TechInventory.
@@ -37,6 +39,21 @@ export const store = configureStore({
     },
 });
 
+
+// Guardamos la referencia actual de equipos para detectar únicamente
+// modificaciones reales y evitar escribir en Supabase por cualquier acción del Store.
+let previousEquipments = store.getState().equipment.equipments;
+
+// Evita sincronizar automáticamente los datos antiguos recuperados desde AsyncStorage.
+// Los datos locales actuales son de prueba y no necesitamos migrarlos a Supabase.
+let equipmentInitializationComplete = false;
+
+// Mantiene una cola independiente por código de equipo.
+// Esto evita que dos cambios rápidos, por ejemplo finalizar mantenimiento y liberar
+// empleado, lleguen a Supabase en un orden diferente al ocurrido dentro de Redux.
+const equipmentSyncQueue = new Map<string, Promise<void>>();
+
+
 // Guardamos la referencia actual para persistir únicamente cuando Mantenimiento cambie.
 let previousMaintenances = store.getState().maintenance.maintenances;
 
@@ -44,14 +61,78 @@ let previousMaintenances = store.getState().maintenance.maintenances;
 // actualice alguno de sus estados.
 store.subscribe(() => {
 
-    // 9. Obtenemos el estado completo y tomamos solamente el arreglo de equipos.
-    const equipments = store.getState().equipment.equipments;
+    // Obtenemos una sola vez el estado actual para trabajar con equipos y catálogos.
+    const currentState = store.getState();
+    const equipments = currentState.equipment.equipments;
 
-    //Prueba temporal
-    console.log(
-        'Guardando equipos en AsyncStorage:',
-        equipments.length
-    );
+    // Solo persistimos cuando el arreglo de equipos cambió realmente.
+    // Así evitamos guardar equipos cada vez que cambia otro Slice del Store.
+    if (equipments !== previousEquipments) {
+        const previousEquipmentsMap = new Map(
+            previousEquipments.map((equipo) => [equipo.codigo, equipo])
+        );
+
+        // Immer conserva la referencia de los objetos que no cambiaron.
+        // Por eso podemos identificar exactamente qué equipos fueron modificados.
+        const changedEquipments = equipments.filter(
+            (equipo) =>
+                previousEquipmentsMap.get(equipo.codigo) !== equipo
+        );
+
+        // Actualizamos la referencia antes de comenzar operaciones asíncronas.
+        previousEquipments = equipments;
+
+        // AsyncStorage continúa funcionando durante la migración.
+        // Lo eliminaremos únicamente cuando toda la información relacionada
+        // con Equipos esté completamente respaldada por Supabase.
+        saveEquipments(equipments).catch((error) => {
+            console.log('Error al guardar los equipos:', error);
+        });
+
+        // No sincronizamos el arreglo antiguo cargado inicialmente desde AsyncStorage.
+        if (equipmentInitializationComplete) {
+            changedEquipments.forEach((equipo) => {
+                // Capturamos los catálogos actuales para convertir nombres a IDs.
+                const catalogos = {
+                    sucursales: currentState.sucursales.sucursales,
+                    departamentos: currentState.departamentos.departamentos,
+                    empleados: currentState.empleados.empleados,
+                };
+
+                // Recuperamos la última sincronización pendiente del mismo equipo.
+                const previousSync =
+                    equipmentSyncQueue.get(equipo.codigo) ?? Promise.resolve();
+
+                // Encadenamos el nuevo cambio para garantizar el orden correcto.
+                const nextSync = previousSync
+                    .catch(() => undefined)
+                    .then(async () => {
+                        await sincronizarEquipoConSupabase(equipo, catalogos);
+
+                        console.log(
+                            'Equipo sincronizado con Supabase:',
+                            equipo.codigo
+                        );
+                    })
+                    .catch((error) => {
+                        console.log(
+                            `Error al sincronizar ${equipo.codigo} con Supabase:`,
+                            error
+                        );
+                    });
+
+                equipmentSyncQueue.set(equipo.codigo, nextSync);
+
+                // Eliminamos la cola solamente si esta sigue siendo
+                // la última operación pendiente para el equipo.
+                void nextSync.finally(() => {
+                    if (equipmentSyncQueue.get(equipo.codigo) === nextSync) {
+                        equipmentSyncQueue.delete(equipo.codigo);
+                    }
+                });
+            });
+        }
+    }
 
     // 10. Guardamos el arreglo actualizado en AsyncStorage. Si ocurre un error, lo mostramos en consola.
     saveEquipments(equipments).catch((error) => {
@@ -107,6 +188,11 @@ const initializeEquipments = async () => {
             savedEquipments.length
         );
     }
+
+    // A partir de este punto los nuevos cambios realizados por el usuario
+// sí podrán sincronizarse con Supabase.
+// La recuperación inicial de datos locales queda excluida intencionalmente.
+equipmentInitializationComplete = true;
 };
 
 // 15. Ejecutamos la carga cuando se crea el Store.
