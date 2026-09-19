@@ -5,8 +5,8 @@ import equipmentReducer, { cargarEquipos } from './equipmentSlice';
 import maintenanceReducer, { cargarMantenimientos } from './maintenanceSlice';
 import usersReducer from './usersSlice';
 import notificationsReducer, { cargarNotificaciones } from './notificationsSlice';
-// Importamos el reducer de sucursales para mantener el catálogo de Supabase dentro de Redux.
-import sucursalesReducer from './sucursalesSlice';
+// Importamos el reducer y la acción asíncrona que cargará las sucursales desde Supabase.
+import sucursalesReducer, { cargarSucursalesDesdeSupabase } from './sucursalesSlice';
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 import { saveNotifications, loadNotifications } from './notificationsStorage';
@@ -147,8 +147,27 @@ const initializeNotifications = async () => {
 initializeNotifications();
 
 
+// 20. Cargamos el catálogo de sucursales directamente desde Supabase.
+// Redux conservará estos datos para que las pantallas puedan utilizarlos posteriormente.
+const initializeSucursales = async () => {
+    try {
+        const sucursales = await store.dispatch(cargarSucursalesDesdeSupabase()).unwrap();
+
+        // Mostramos temporalmente el resultado para comprobar la conexión Supabase → Redux.
+        console.log('Sucursales recuperadas de Supabase:', sucursales.length);
+        console.log('Sucursales:', sucursales);
+    } catch (error) {
+        // Si Supabase rechaza la consulta, mostramos el error sin detener la aplicación.
+        console.log('Error al cargar sucursales desde Supabase:', error);
+    }
+};
+
+// 21. Ejecutamos la carga de sucursales cuando se crea el Store.
+initializeSucursales();
+
 // 6. RootState representa la estructura completa del estado global almacenado dentro de Redux.
 export type RootState = ReturnType<typeof store.getState>;
+
 
 // 7. AppDispatch representa el tipo de dispatch configurado dentro de nuestro Store.
 export type AppDispatch = typeof store.dispatch;
