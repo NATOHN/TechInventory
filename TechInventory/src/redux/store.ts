@@ -11,12 +11,16 @@ import sucursalesReducer, { cargarSucursalesDesdeSupabase } from './sucursalesSl
 import departamentosReducer, { cargarDepartamentosDesdeSupabase } from './departamentosSlice';
 // Importamos el reducer y la acción asíncrona que cargará los empleados desde Supabase.
 import empleadosReducer, { cargarEmpleadosDesdeSupabase } from './empleadosSlice';
+// Mantiene los indicadores reales obtenidos desde Supabase para Home y Reportes.
+import analyticsReducer from './analyticsSlice';
 
 import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 import { saveNotifications, loadNotifications } from './notificationsStorage';
 // Sincroniza con Supabase únicamente los equipos que realmente cambian en Redux.
-import { sincronizarEquipoConSupabase } from '../services/equiposService';
+import {  obtenerEquiposDesdeSupabase, sincronizarEquipoConSupabase } from '../services/equiposService';
+// Sincroniza los cambios actuales de Mantenimiento con PostgreSQL.
+import { sincronizarMantenimientoConSupabase } from '../services/mantenimientosService';
 
 
 // 2. Creamos el Store principal de TechInventory.
@@ -36,6 +40,9 @@ export const store = configureStore({
         departamentos: departamentosReducer,
         // La propiedad empleados mantendrá en Redux el catálogo obtenido desde Supabase.
         empleados: empleadosReducer,
+        // Los indicadores de Home y Reportes se almacenan por separado
+// para no depender de los datos temporales recuperados desde AsyncStorage.
+analytics: analyticsReducer,
     },
 });
 
@@ -56,6 +63,14 @@ const equipmentSyncQueue = new Map<string, Promise<void>>();
 
 // Guardamos la referencia actual para persistir únicamente cuando Mantenimiento cambie.
 let previousMaintenances = store.getState().maintenance.maintenances;
+
+// Evita enviar a Supabase automáticamente los mantenimientos antiguos
+// recuperados inicialmente desde AsyncStorage.
+let maintenanceInitializationComplete = false;
+
+// Cada mantenimiento utiliza su propia cola para conservar el orden
+// cuando se realizan varios cambios consecutivos.
+const maintenanceSyncQueue = new Map<string, Promise<void>>();
 
 // 8. Nos suscribimos a los cambios del Store. Esta función se ejecutará cada vez que Redux
 // actualice alguno de sus estados.
@@ -134,27 +149,69 @@ store.subscribe(() => {
         }
     }
 
-    // 10. Guardamos el arreglo actualizado en AsyncStorage. Si ocurre un error, lo mostramos en consola.
-    saveEquipments(equipments).catch((error) => {
-        console.log('Error al guardar los equipos:', error);
+   
 
-    });
+    // Obtenemos los mantenimientos actuales directamente del estado ya leído.
+    const maintenances = currentState.maintenance.maintenances;
 
-    // Obtenemos los mantenimientos actuales del Store.
-    const maintenances = store.getState().maintenance.maintenances;
-
-    // Solo guardamos cuando realmente cambió el arreglo de mantenimientos.
+    // Solo trabajamos cuando Redux realmente modificó el arreglo de mantenimientos.
     if (maintenances !== previousMaintenances) {
-        previousMaintenances = maintenances;
-
-        console.log(
-            'Guardando mantenimientos en AsyncStorage:',
-            maintenances.length
+        const previousMaintenancesMap = new Map(
+            previousMaintenances.map((mantenimiento) => [
+                mantenimiento.id,
+                mantenimiento,
+            ])
         );
 
+        // Immer conserva la referencia de los objetos sin cambios.
+        // Así detectamos exactamente qué mantenimiento fue creado o modificado.
+        const changedMaintenances = maintenances.filter(
+            (mantenimiento) =>
+                previousMaintenancesMap.get(mantenimiento.id) !== mantenimiento
+        );
+
+        previousMaintenances = maintenances;
+
+        // Conservamos AsyncStorage mientras finalizamos la migración completa.
         saveMaintenances(maintenances).catch((error) => {
             console.log('Error al guardar los mantenimientos:', error);
         });
+
+        // Los datos antiguos de prueba cargados inicialmente no se migran automáticamente.
+        if (maintenanceInitializationComplete) {
+            changedMaintenances.forEach((mantenimiento) => {
+                const previousSync =
+                    maintenanceSyncQueue.get(mantenimiento.id) ?? Promise.resolve();
+
+                // Encadenamos las operaciones para que una edición rápida
+                // no llegue a PostgreSQL antes que la creación inicial.
+                const nextSync = previousSync
+                    .catch(() => undefined)
+                    .then(async () => {
+                        await sincronizarMantenimientoConSupabase(mantenimiento);
+
+                        console.log(
+                            'Mantenimiento sincronizado con Supabase:',
+                            mantenimiento.codigoMantenimiento ?? mantenimiento.id
+                        );
+                    })
+                    .catch((error) => {
+                        console.log(
+                            `Error al sincronizar mantenimiento ${mantenimiento.codigoMantenimiento ?? mantenimiento.id}:`,
+                            error
+                        );
+                    });
+
+                maintenanceSyncQueue.set(mantenimiento.id, nextSync);
+
+                // Limpiamos la cola cuando ya no exista otra operación pendiente.
+                void nextSync.finally(() => {
+                    if (maintenanceSyncQueue.get(mantenimiento.id) === nextSync) {
+                        maintenanceSyncQueue.delete(mantenimiento.id);
+                    }
+                });
+            });
+        }
     }
 
     // 10a. Obtenemos el arreglo completo de notificaciones y lo guardamos tambien en AsyncStorage.
@@ -167,32 +224,51 @@ store.subscribe(() => {
 
 
 
-// 11. Creamos una función encargada de recuperar los equipos cuando inicia la aplicación.
+// 11. Recupera primero el inventario compartido desde Supabase.
+// AsyncStorage queda únicamente como respaldo temporal si no existe conexión.
 const initializeEquipments = async () => {
+    try {
+        // Supabase es ahora la fuente principal del inventario.
+        const equiposSupabase = await obtenerEquiposDesdeSupabase();
 
-    // 12. Intentamos recuperar los equipos almacenados anteriormente.
-    const savedEquipments = await loadEquipments();
-
-
-    // 13. Si AsyncStorage contiene equipos, reemplazamos el estado inicial de Redux
-    // por los datos recuperados.
-    if (savedEquipments !== null) {
-
+        // Sustituimos completamente cualquier estado local por
+        // la información compartida entre todos los dispositivos.
         store.dispatch(
-            cargarEquipos(savedEquipments)
+            cargarEquipos(equiposSupabase)
         );
 
-        // 14. Mostramos temporalmente cuántos equipos fueron recuperados.
+        // Conservamos una copia local como respaldo temporal.
+        await saveEquipments(equiposSupabase);
+
         console.log(
-            'Equipos recuperados de AsyncStorage:',
-            savedEquipments.length
+            'Equipos recuperados desde Supabase:',
+            equiposSupabase.length
         );
-    }
+    } catch (error) {
+        console.log(
+            'No se pudieron cargar los equipos desde Supabase:',
+            error
+        );
 
-    // A partir de este punto los nuevos cambios realizados por el usuario
-// sí podrán sincronizarse con Supabase.
-// La recuperación inicial de datos locales queda excluida intencionalmente.
-equipmentInitializationComplete = true;
+        // Si el dispositivo está temporalmente sin conexión,
+        // intentamos trabajar con la última copia disponible.
+        const savedEquipments = await loadEquipments();
+
+        if (savedEquipments !== null) {
+            store.dispatch(
+                cargarEquipos(savedEquipments)
+            );
+
+            console.log(
+                'Equipos recuperados desde respaldo local:',
+                savedEquipments.length
+            );
+        }
+    } finally {
+        // Solo después de terminar la hidratación inicial permitimos
+        // que los nuevos cambios del usuario vuelvan a sincronizarse.
+        equipmentInitializationComplete = true;
+    }
 };
 
 // 15. Ejecutamos la carga cuando se crea el Store.
@@ -211,6 +287,9 @@ const initializeMaintenances = async () => {
             savedMaintenances.length
         );
     }
+    // A partir de este momento los nuevos cambios del usuario
+    // sí pueden sincronizarse con Supabase.
+    maintenanceInitializationComplete = true;
 };
 
 // Ejecutamos la recuperación al crear el Store.
