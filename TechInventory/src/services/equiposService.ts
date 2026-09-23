@@ -1,6 +1,9 @@
 // Importamos el cliente único de Supabase utilizado por TechInventory.
 import { supabase } from "../lib/supabase";
 
+// Gestiona la subida de fotografías reales a Supabase Storage.
+import { subirFotoEquipo } from "./equipmentImagesService";
+
 // Importamos únicamente los tipos necesarios.
 // Redux conserva su estructura actual y este servicio traduce sus datos a PostgreSQL.
 import type { Equipment } from "../redux/equipmentSlice";
@@ -73,6 +76,13 @@ export const sincronizarEquipoConSupabase = async (
         );
     }
 
+    // Si la fotografía proviene de cámara o galería la subimos primero
+    // a Supabase Storage. Si ya es una URL remota simplemente se conserva.
+    const fotoPath = await subirFotoEquipo(
+        equipo.codigo,
+        equipo.foto
+    );
+
     // Insertamos o actualizamos el equipo utilizando su código estable.
     // Solicitamos de vuelta el ID técnico porque los historiales lo utilizan como relación.
     const { data: equipoGuardado, error } = await supabase
@@ -88,6 +98,10 @@ export const sincronizarEquipoConSupabase = async (
                 empleado_id: empleado?.id ?? null,
                 status: equipo.status,
                 estado_antes_de_baja: equipo.estadoAntesDeBaja ?? null,
+
+                // Conservamos en PostgreSQL la URL pública de la fotografía
+                // almacenada físicamente dentro de Supabase Storage.
+                foto_path: fotoPath,
             },
             {
                 onConflict: "codigo",
@@ -111,4 +125,153 @@ export const sincronizarEquipoConSupabase = async (
             equipo.historialEstados ?? []
         ),
     ]);
+};
+
+// Estructura mínima utilizada al recuperar equipos desde PostgreSQL.
+// Los IDs relacionales serán transformados nuevamente a los nombres
+// que actualmente consume Redux.
+type EquipoSupabaseRow = {
+    codigo: string;
+    marca: string;
+    modelo: string;
+    serie: string;
+    sucursal_id: number;
+    departamento_id: number;
+    empleado_id: number | null;
+    status: Equipment["status"];
+    estado_antes_de_baja: "activo" | "taller" | null;
+    foto_path: string | null;
+};
+
+// Devuelve una imagen compatible con la estructura actual de Equipment.
+// Cuando exista una URL real de Supabase Storage podremos utilizarla.
+// Mientras tanto conservamos una imagen local de respaldo según la marca.
+const obtenerFotoParaRedux = (
+    marca: string,
+    fotoPath: string | null
+): Equipment["foto"] => {
+    // Si posteriormente foto_path contiene una URL real de Storage,
+    // cualquier dispositivo podrá visualizar la misma fotografía.
+    if (fotoPath?.startsWith("http")) {
+        return { uri: fotoPath };
+    }
+
+    // Actualmente el catálogo de marcas utiliza Dell y HP.
+    if (marca.trim().toLowerCase() === "hp") {
+        return require("../img/hp-prodesk-400-g9.png");
+    }
+
+    return require("../img/dell.png");
+};
+
+// Recupera el inventario real completo desde Supabase y lo transforma
+// al mismo formato que ya utilizan EquipmentList, Detail y Mantenimiento.
+export const obtenerEquiposDesdeSupabase = async (): Promise<Equipment[]> => {
+    // Consultamos equipos y catálogos al mismo tiempo.
+    // Esto evita depender del orden en que Redux haya cargado los catálogos.
+    const [
+        equiposResponse,
+        sucursalesResponse,
+        departamentosResponse,
+        empleadosResponse,
+    ] = await Promise.all([
+        supabase
+            .from("equipos")
+            .select(`
+                codigo,
+                marca,
+                modelo,
+                serie,
+                sucursal_id,
+                departamento_id,
+                empleado_id,
+                status,
+                estado_antes_de_baja,
+                foto_path
+            `)
+            .order("codigo", { ascending: true }),
+
+        supabase
+            .from("sucursales")
+            .select("id,nombre"),
+
+        supabase
+            .from("departamentos")
+            .select("id,nombre"),
+
+        supabase
+            .from("empleados")
+            .select("id,nombre"),
+    ]);
+
+    // Cualquier error debe llegar al Store para poder utilizar
+    // el respaldo local solamente cuando Supabase no esté disponible.
+    if (equiposResponse.error) throw equiposResponse.error;
+    if (sucursalesResponse.error) throw sucursalesResponse.error;
+    if (departamentosResponse.error) throw departamentosResponse.error;
+    if (empleadosResponse.error) throw empleadosResponse.error;
+
+    const equipos = (equiposResponse.data ?? []) as EquipoSupabaseRow[];
+
+    // Creamos mapas por ID para convertir rápidamente
+    // las relaciones PostgreSQL al formato actual de Redux.
+    const sucursalesPorId = new Map(
+        (sucursalesResponse.data ?? []).map((sucursal) => [
+            sucursal.id,
+            sucursal.nombre,
+        ])
+    );
+
+    const departamentosPorId = new Map(
+        (departamentosResponse.data ?? []).map((departamento) => [
+            departamento.id,
+            departamento.nombre,
+        ])
+    );
+
+    const empleadosPorId = new Map(
+        (empleadosResponse.data ?? []).map((empleado) => [
+            empleado.id,
+            empleado.nombre,
+        ])
+    );
+
+    // Transformamos cada fila PostgreSQL a Equipment.
+    return equipos.map((equipo) => ({
+        codigo: equipo.codigo,
+        marca: equipo.marca,
+        modelo: equipo.modelo,
+        serie: equipo.serie,
+
+        sucursal:
+            sucursalesPorId.get(equipo.sucursal_id) ??
+            "Sucursal no identificada",
+
+        departamento:
+            departamentosPorId.get(equipo.departamento_id) ??
+            "Departamento no identificado",
+
+        empleadoAsignado:
+            equipo.empleado_id === null
+                ? "Sin asignar"
+                : empleadosPorId.get(equipo.empleado_id) ??
+                "Sin asignar",
+
+        status: equipo.status,
+
+        // Por ahora la fotografía tiene respaldo local.
+        // Más adelante migraremos las fotografías a Supabase Storage.
+        foto: obtenerFotoParaRedux(
+            equipo.marca,
+            equipo.foto_path
+        ),
+
+        estadoAntesDeBaja:
+            equipo.estado_antes_de_baja ?? undefined,
+
+        // Los historiales serán conectados en un bloque posterior.
+        // No los inventamos ni los eliminamos de PostgreSQL.
+        historialUbicaciones: [],
+        historialEstados: [],
+    }));
 };
