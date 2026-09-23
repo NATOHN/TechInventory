@@ -99,11 +99,18 @@ export const generateMaintenancePdf = async (
         .join('')
       : `<tr><td colspan="2" class="empty">${isEnglish ? 'No parts used.' : 'No se utilizaron repuestos.'}</td></tr>`;
 
-  // La firma actual se guarda como data-uri, por lo que puede incrustarse en el HTML.
-  const signatureHtml =
-    maintenance.firmaBase64?.startsWith('data:image/')
-      ? `<img src="${maintenance.firmaBase64}" class="signature" />`
-      : `<div class="signature-missing">${isEnglish ? 'Signature unavailable' : 'Firma no disponible'}</div>`;
+  // La firma puede venir directamente de la captura como data-uri
+// o desde Supabase Storage mediante una URL privada temporal.
+const firmaDisponible =
+  maintenance.firmaBase64?.startsWith('data:image/') ||
+  maintenance.firmaBase64?.startsWith('https://') ||
+  maintenance.firmaBase64?.startsWith('http://');
+
+const signatureHtml =
+  firmaDisponible
+    ? `<img src="${maintenance.firmaBase64}" class="signature" />`
+    : `<div class="signature-missing">${isEnglish ? 'Signature unavailable' : 'Firma no disponible'}</div>`;
+ 
 
   const html = `
     <!DOCTYPE html>

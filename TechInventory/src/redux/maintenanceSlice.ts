@@ -53,6 +53,8 @@ export type Maintenance = {
   motivoBaja?: string;
 
   firmaBase64?: string;
+  // Ruta permanente de la firma dentro de Supabase Storage.
+  firmaPath?: string;
   firmadoPorNombre?: string;
   fechaFirma?: string;
 
@@ -147,6 +149,8 @@ const maintenanceSlice = createSlice({
       action: PayloadAction<{
         id: string;
         firmaBase64: string
+        // Ruta permanente almacenada dentro de Supabase Storage.
+        firmaPath?: string;
         firmadoPorNombre?: string;
       }>
     ) => {
@@ -158,6 +162,8 @@ const maintenanceSlice = createSlice({
         mant.status = 'finalizado';
         mant.fechaFinalizacion = new Date().toISOString();
         mant.firmaBase64 = action.payload.firmaBase64;
+        // Conservamos también la ruta permanente de la firma en Supabase Storage.
+        mant.firmaPath = action.payload.firmaPath;
 
         // Conservamos quién firmó la conformidad en ese momento.
         // Así un cambio futuro de responsable no altera mantenimientos antiguos.

@@ -3,6 +3,9 @@ import { supabase } from "../lib/supabase";
 
 // Reutilizamos exactamente la estructura que ya utiliza Redux.
 import type { Maintenance } from "../redux/maintenanceSlice";
+// Genera una URL temporal para visualizar firmas almacenadas
+// dentro del bucket privado de Supabase Storage.
+import { obtenerUrlFirmaMantenimiento } from "./maintenanceSignaturesService";
 
 
 // Sincroniza el estado actual de un mantenimiento con PostgreSQL.
@@ -24,7 +27,7 @@ export const sincronizarMantenimientoConSupabase = async (
         mantenimiento.codigoMantenimiento ?? mantenimiento.id;
 
     // Insertamos o actualizamos el registro principal.
-    // No enviamos firma_path porque la firma todavía es un archivo local del dispositivo.
+    // firma_path conservará la ubicación permanente de la firma dentro de Supabase Storage.
     const { data: mantenimientoGuardado, error: mantenimientoError } =
         await supabase
             .from("mantenimientos")
@@ -46,6 +49,10 @@ export const sincronizarMantenimientoConSupabase = async (
                     fecha_finalizacion: mantenimiento.fechaFinalizacion ?? null,
                     firmado_por_nombre: mantenimiento.firmadoPorNombre ?? null,
                     fecha_firma: mantenimiento.fechaFirma ?? null,
+
+                    // Guardamos únicamente la ruta permanente del archivo.
+                    // La imagen física permanece dentro del bucket privado.
+                    firma_path: mantenimiento.firmaPath ?? null,
 
                     // Estos campos representan al usuario que creó el registro.
                     registrado_por_id: mantenimiento.registradoPorId ?? null,
@@ -135,6 +142,8 @@ type MantenimientoSupabaseRow = {
     fecha_finalizacion: string | null;
     firmado_por_nombre: string | null;
     fecha_firma: string | null;
+    // Ruta permanente de la firma dentro de Supabase Storage.
+firma_path: string | null;
     registrado_por_id: string | null;
     registrado_por_nombre: string | null;
     registrado_por_correo: string | null;
@@ -186,6 +195,7 @@ export const obtenerMantenimientosDesdeSupabase = async (): Promise<Maintenance[
                 fecha_finalizacion,
                 firmado_por_nombre,
                 fecha_firma,
+                firma_path,
                 registrado_por_id,
                 registrado_por_nombre,
                 registrado_por_correo
@@ -269,7 +279,16 @@ export const obtenerMantenimientosDesdeSupabase = async (): Promise<Maintenance[
 
     // Convertimos cada fila PostgreSQL a la estructura Maintenance
     // que ya utilizan las pantallas actuales.
-    return mantenimientos.map((mantenimiento) => ({
+    return  Promise.all(
+    mantenimientos.map(async (mantenimiento) => {
+                // Si el mantenimiento tiene una firma almacenada,
+        // generamos una URL privada temporal para visualizarla.
+        const firmaUrl = mantenimiento.firma_path
+            ? await obtenerUrlFirmaMantenimiento(mantenimiento.firma_path)
+            : undefined;
+
+        return {
+
         // Utilizamos el código estable como ID dentro de Redux.
         id: mantenimiento.codigo_mantenimiento,
         codigoMantenimiento: mantenimiento.codigo_mantenimiento,
@@ -317,10 +336,22 @@ export const obtenerMantenimientosDesdeSupabase = async (): Promise<Maintenance[
         fechaFirma:
             mantenimiento.fecha_firma ?? undefined,
 
+                // Conservamos la ruta permanente por si necesitamos
+        // volver a generar otra URL firmada posteriormente.
+        firmaPath:
+            mantenimiento.firma_path ?? undefined,
+
+        // La interfaz actual utiliza firmaBase64 para mostrar la firma.
+        // Temporalmente reutilizamos ese mismo campo con la URL firmada
+        // para no romper las pantallas existentes.
+        firmaBase64: firmaUrl,
+
         status: mantenimiento.status,
         fechaInicio: mantenimiento.fecha_inicio,
 
         fechaFinalizacion:
             mantenimiento.fecha_finalizacion ?? undefined,
-    }));
+   };
+    })
+);
 };
