@@ -8,6 +8,7 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,9 @@ import { useTheme } from '../../context/ThemeContext';
 // Redux permitirá registrar la sucursal en Supabase y actualizar el catálogo local.
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { crearSucursalEnSupabase } from '../../redux/sucursalesSlice';
+
+// Permite registrar departamentos y actualizar inmediatamente su catálogo.
+import { crearDepartamentoEnSupabase } from '../../redux/departamentosSlice';
 
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
@@ -35,6 +39,11 @@ export default function LocationsScreen({ navigation }: Props) {
     // 5. Recuperamos las sucursales actuales para mostrarlas y evitar nombres repetidos.
     const sucursales = useAppSelector((state) => state.sucursales.sucursales);
 
+    // Catálogo actual de departamentos cargado desde Supabase.
+    const departamentos = useAppSelector(
+        (state) => state.departamentos.departamentos
+    );
+
     // 6. Recuperamos al usuario autenticado para comprobar que sea administrador.
     const currentUser = useAppSelector((state) =>
         state.users.users.find((user) => user.id === state.users.currentUserId)
@@ -45,6 +54,17 @@ export default function LocationsScreen({ navigation }: Props) {
     // 7. Estados exclusivos del formulario para crear una sucursal.
     const [nombreSucursal, setNombreSucursal] = useState('');
     const [guardando, setGuardando] = useState(false);
+
+    // Estados utilizados únicamente para registrar departamentos.
+    const [nombreDepartamento, setNombreDepartamento] = useState('');
+    const [sucursalDepartamentoId, setSucursalDepartamentoId] = useState<number | null>(null);
+    const [mostrarSucursalesModal, setMostrarSucursalesModal] = useState(false);
+    const [guardandoDepartamento, setGuardandoDepartamento] = useState(false);
+
+    // Recuperamos la sucursal completa para mostrar su nombre en el selector.
+    const sucursalDepartamento = sucursales.find(
+        (sucursal) => sucursal.id === sucursalDepartamentoId
+    );
 
     // 8. Valida y registra una nueva sucursal mediante Redux → servicio → Supabase.
     const handleCrearSucursal = async () => {
@@ -113,6 +133,87 @@ export default function LocationsScreen({ navigation }: Props) {
             Alert.alert('No se pudo crear la sucursal', mensaje);
         } finally {
             setGuardando(false);
+        }
+    };
+
+    // Registra un departamento y lo relaciona con la sucursal seleccionada.
+    const handleCrearDepartamento = async () => {
+        // Mantenemos una segunda protección en la interfaz además de RLS.
+        if (!esAdministrador) {
+            Alert.alert(
+                'Acceso restringido',
+                'Solo un administrador puede registrar departamentos.'
+            );
+            return;
+        }
+
+        if (guardandoDepartamento) return;
+
+        const nombreLimpio = nombreDepartamento.trim().replace(/\s+/g, ' ');
+
+        if (!sucursalDepartamentoId) {
+            Alert.alert(
+                'Sucursal requerida',
+                'Selecciona la sucursal a la que pertenece el departamento.'
+            );
+            return;
+        }
+
+        if (nombreLimpio.length < 2) {
+            Alert.alert(
+                'Nombre requerido',
+                'Ingresa un nombre válido para el departamento o zona.'
+            );
+            return;
+        }
+
+        // Permitimos nombres iguales en sucursales diferentes,
+        // pero evitamos repetir el mismo departamento dentro de una misma sucursal.
+        const departamentoExistente = departamentos.some(
+            (departamento) =>
+                departamento.sucursal_id === sucursalDepartamentoId &&
+                departamento.nombre.trim().toLowerCase() === nombreLimpio.toLowerCase()
+        );
+
+        if (departamentoExistente) {
+            Alert.alert(
+                'Departamento existente',
+                'Esta sucursal ya tiene un departamento o zona con ese nombre.'
+            );
+            return;
+        }
+
+        try {
+            setGuardandoDepartamento(true);
+
+            const nuevoDepartamento = await dispatch(
+                crearDepartamentoEnSupabase({
+                    nombre: nombreLimpio,
+                    sucursalId: sucursalDepartamentoId,
+                })
+            ).unwrap();
+
+            // Limpiamos el formulario solamente después de guardar correctamente.
+            setNombreDepartamento('');
+            setSucursalDepartamentoId(null);
+
+            Alert.alert(
+                'Departamento creado',
+                `${nuevoDepartamento.nombre} fue registrado correctamente.`
+            );
+        } catch (error) {
+            console.log('Error al crear departamento:', error);
+
+            const mensaje =
+                typeof error === 'string'
+                    ? error
+                    : error instanceof Error
+                        ? error.message
+                        : 'No fue posible registrar el departamento.';
+
+            Alert.alert('No se pudo crear el departamento', mensaje);
+        } finally {
+            setGuardandoDepartamento(false);
         }
     };
 
@@ -294,8 +395,289 @@ export default function LocationsScreen({ navigation }: Props) {
                     )}
                 </View>
 
+                {/* Formulario para registrar departamentos relacionados con una sucursal. */}
+                {esAdministrador && (
+                    <View
+                        style={[
+                            styles.formCard,
+                            {
+                                backgroundColor: colors.surface,
+                                borderColor: colors.border,
+                                marginTop: 20,
+                            },
+                        ]}
+                    >
+                        <View style={styles.sectionHeader}>
+                            <View
+                                style={[
+                                    styles.iconContainer,
+                                    { backgroundColor: colors.background },
+                                ]}
+                            >
+                                <Ionicons
+                                    name="layers-outline"
+                                    size={22}
+                                    color={colors.primary}
+                                />
+                            </View>
+
+                            <View style={styles.sectionHeaderText}>
+                                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                                    Nuevo departamento o zona
+                                </Text>
+
+                                <Text
+                                    style={[
+                                        styles.sectionDescription,
+                                        { color: colors.textSecondary },
+                                    ]}
+                                >
+                                    Selecciona primero la sucursal a la que pertenece.
+                                </Text>
+                            </View>
+                        </View>
+
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Sucursal
+                        </Text>
+
+                        {/* Selector de sucursal basado en el catálogo real de Redux. */}
+                        <TouchableOpacity
+                            style={[
+                                styles.selectField,
+                                {
+                                    backgroundColor: colors.background,
+                                    borderColor: colors.border,
+                                },
+                            ]}
+                            onPress={() => setMostrarSucursalesModal(true)}
+                            disabled={guardandoDepartamento}
+                        >
+                            <Text
+                                style={{
+                                    color: sucursalDepartamento
+                                        ? colors.text
+                                        : colors.textSecondary,
+                                }}
+                            >
+                                {sucursalDepartamento?.nombre ?? 'Seleccionar sucursal'}
+                            </Text>
+
+                            <Ionicons
+                                name="chevron-down"
+                                size={20}
+                                color={colors.textSecondary}
+                            />
+                        </TouchableOpacity>
+
+                        <Text style={[styles.label, { color: colors.text }]}>
+                            Departamento o zona
+                        </Text>
+
+                        <CustomInput
+                            type="text"
+                            placeholder="Ej. Contabilidad"
+                            value={nombreDepartamento}
+                            onChange={setNombreDepartamento}
+                        />
+
+                        {guardandoDepartamento ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="small" color={colors.primary} />
+
+                                <Text style={{ color: colors.textSecondary }}>
+                                    Registrando departamento...
+                                </Text>
+                            </View>
+                        ) : (
+                            <CustomButton
+                                title="Crear departamento"
+                                onPress={handleCrearDepartamento}
+                            />
+                        )}
+                    </View>
+                )}
+
+                {/* Listado actualizado automáticamente desde Redux. */}
+                <View style={[styles.listSection, { marginTop: 8 }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                        Departamentos y zonas registradas
+                    </Text>
+
+                    <Text
+                        style={[
+                            styles.counterText,
+                            { color: colors.textSecondary },
+                        ]}
+                    >
+                        {departamentos.length}{' '}
+                        {departamentos.length === 1 ? 'departamento' : 'departamentos'}
+                    </Text>
+
+                    {departamentos.length === 0 ? (
+                        <View
+                            style={[
+                                styles.emptyCard,
+                                {
+                                    backgroundColor: colors.surface,
+                                    borderColor: colors.border,
+                                },
+                            ]}
+                        >
+                            <Ionicons
+                                name="layers-outline"
+                                size={28}
+                                color={colors.textSecondary}
+                            />
+
+                            <Text
+                                style={[
+                                    styles.emptyText,
+                                    { color: colors.textSecondary },
+                                ]}
+                            >
+                                No hay departamentos registrados.
+                            </Text>
+                        </View>
+                    ) : (
+                        departamentos.map((departamento) => {
+                            // Obtenemos el nombre de la sucursal relacionada mediante su ID.
+                            const sucursalRelacionada = sucursales.find(
+                                (sucursal) => sucursal.id === departamento.sucursal_id
+                            );
+
+                            return (
+                                <View
+                                    key={departamento.id}
+                                    style={[
+                                        styles.sucursalRow,
+                                        {
+                                            backgroundColor: colors.surface,
+                                            borderColor: colors.border,
+                                        },
+                                    ]}
+                                >
+                                    <View
+                                        style={[
+                                            styles.sucursalIcon,
+                                            { backgroundColor: colors.background },
+                                        ]}
+                                    >
+                                        <Ionicons
+                                            name="layers-outline"
+                                            size={20}
+                                            color={colors.primary}
+                                        />
+                                    </View>
+
+                                    <View style={{ flex: 1 }}>
+                                        <Text
+                                            style={[
+                                                styles.sucursalNombre,
+                                                { color: colors.text },
+                                            ]}
+                                        >
+                                            {departamento.nombre}
+                                        </Text>
+
+                                        <Text
+                                            style={[
+                                                styles.departmentBranch,
+                                                { color: colors.textSecondary },
+                                            ]}
+                                        >
+                                            {sucursalRelacionada?.nombre ?? 'Sucursal no disponible'}
+                                        </Text>
+                                    </View>
+
+                                    <Ionicons
+                                        name="checkmark-circle-outline"
+                                        size={21}
+                                        color={colors.primary}
+                                    />
+                                </View>
+                            );
+                        })
+                    )}
+                </View>
+
                 <View style={{ height: 30 }} />
             </ScrollView>
+
+            {/* Selector de sucursal para relacionar el nuevo departamento. */}
+            <Modal
+                visible={mostrarSucursalesModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setMostrarSucursalesModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View
+                        style={[
+                            styles.modalCard,
+                            { backgroundColor: colors.surface },
+                        ]}
+                    >
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>
+                                Seleccionar sucursal
+                            </Text>
+
+                            <TouchableOpacity
+                                onPress={() => setMostrarSucursalesModal(false)}
+                            >
+                                <Ionicons
+                                    name="close"
+                                    size={24}
+                                    color={colors.textSecondary}
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        {sucursales.length === 0 ? (
+                            <Text
+                                style={[
+                                    styles.modalEmptyText,
+                                    { color: colors.textSecondary },
+                                ]}
+                            >
+                                Primero debes registrar una sucursal.
+                            </Text>
+                        ) : (
+                            sucursales.map((sucursal) => (
+                                <TouchableOpacity
+                                    key={sucursal.id}
+                                    style={[
+                                        styles.modalOption,
+                                        { borderBottomColor: colors.border },
+                                    ]}
+                                    onPress={() => {
+                                        setSucursalDepartamentoId(sucursal.id);
+                                        setMostrarSucursalesModal(false);
+                                    }}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.modalOptionText,
+                                            { color: colors.text },
+                                        ]}
+                                    >
+                                        {sucursal.nombre}
+                                    </Text>
+
+                                    {sucursalDepartamentoId === sucursal.id && (
+                                        <Ionicons
+                                            name="checkmark"
+                                            size={21}
+                                            color={colors.primary}
+                                        />
+                                    )}
+                                </TouchableOpacity>
+                            ))
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -392,5 +774,65 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 14,
         marginTop: 8,
+    },
+
+    selectField: {
+        minHeight: 50,
+        borderWidth: 1,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 14,
+    },
+
+    departmentBranch: {
+        fontSize: 12,
+        marginTop: 3,
+    },
+
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        justifyContent: 'center',
+        paddingHorizontal: 24,
+    },
+
+    modalCard: {
+        borderRadius: 14,
+        padding: 18,
+        maxHeight: '70%',
+    },
+
+    modalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+
+    modalOption: {
+        minHeight: 50,
+        borderBottomWidth: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+
+    modalOptionText: {
+        fontSize: 15,
+        flex: 1,
+    },
+
+    modalEmptyText: {
+        textAlign: 'center',
+        paddingVertical: 20,
+        fontSize: 14,
     },
 });

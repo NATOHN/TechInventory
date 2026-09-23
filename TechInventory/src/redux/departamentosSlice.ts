@@ -2,7 +2,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 // 2. Importamos el servicio que consulta Supabase y el tipo de departamento.
-import { obtenerDepartamentos, Departamento } from '../services/departamentosService';
+import {  crearDepartamento, obtenerDepartamentos, Departamento } from '../services/departamentosService';
 
 // 3. Definimos la estructura que tendrá el módulo de departamentos dentro de Redux.
 type DepartamentosState = {
@@ -36,6 +36,27 @@ export const cargarDepartamentosDesdeSupabase = createAsyncThunk<
     }
 );
 
+// Acción asíncrona para registrar un departamento relacionado con una sucursal.
+export const crearDepartamentoEnSupabase = createAsyncThunk<
+    Departamento,
+    { nombre: string; sucursalId: number },
+    { rejectValue: string }
+>(
+    'departamentos/crearEnSupabase',
+    async ({ nombre, sucursalId }, { rejectWithValue }) => {
+        try {
+            return await crearDepartamento(nombre, sucursalId);
+        } catch (error) {
+            const mensaje =
+                error instanceof Error
+                    ? error.message
+                    : 'No se pudo crear el departamento.';
+
+            return rejectWithValue(mensaje);
+        }
+    }
+);
+
 // 6. Creamos el Slice que mantendrá el catálogo disponible para toda la aplicación.
 const departamentosSlice = createSlice({
     name: 'departamentos',
@@ -59,6 +80,25 @@ const departamentosSlice = createSlice({
             state.cargando = false;
             state.error = action.payload ?? 'No se pudieron cargar los departamentos.';
         });
+
+        // Indicamos que comenzó el registro del nuevo departamento.
+builder.addCase(crearDepartamentoEnSupabase.pending, (state) => {
+    state.cargando = true;
+    state.error = null;
+});
+
+// Agregamos inmediatamente el departamento creado al catálogo de Redux.
+builder.addCase(crearDepartamentoEnSupabase.fulfilled, (state, action) => {
+    state.departamentos.push(action.payload);
+    state.departamentos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    state.cargando = false;
+});
+
+// Conservamos el error si Supabase rechaza la operación.
+builder.addCase(crearDepartamentoEnSupabase.rejected, (state, action) => {
+    state.cargando = false;
+    state.error = action.payload ?? 'No se pudo crear el departamento.';
+});
     },
 });
 
