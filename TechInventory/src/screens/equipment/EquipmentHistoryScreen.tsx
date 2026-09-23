@@ -3,13 +3,21 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView } from "rea
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { EquipmentStackParamList } from "../../navigation/EquipmentNavigator";
 import { useTheme } from "../../context/ThemeContext";
 // Permite consultar el equipo y su historial directamente desde Redux.
 import { useAppSelector } from "../../redux/hooks";
 import { useLanguage } from "../../context/LanguageContext";
+// Permite actualizar el historial cada vez que el usuario entra nuevamente a la pantalla.
+import { useFocusEffect } from "@react-navigation/native";
+
+// Recuperamos la versión más reciente del equipo y sus mantenimientos desde Supabase.
+import {
+    refrescarEquiposDesdeSupabase,
+    refrescarMantenimientosDesdeSupabase,
+} from "../../redux/store";
 
 
 // 1. Indicamos que esta pantalla pertenece a la ruta EquipmentHistory.
@@ -32,6 +40,28 @@ const EquipmentHistoryScreen = ({ route, navigation }: Props) => {
 
     // Obtenemos las traducciones y el idioma actual de la aplicación.
     const { t, language } = useLanguage();
+
+    // Cada vez que entramos al historial recuperamos nuevamente el equipo
+// y sus mantenimientos para reflejar cambios realizados desde otros dispositivos.
+useFocusEffect(
+    useCallback(() => {
+        void Promise.allSettled([
+            refrescarEquiposDesdeSupabase(),
+            refrescarMantenimientosDesdeSupabase(),
+        ]).then((resultados) => {
+            // Si alguna consulta falla conservamos la información disponible
+            // en Redux y registramos únicamente el problema en consola.
+            resultados.forEach((resultado) => {
+                if (resultado.status === "rejected") {
+                    console.log(
+                        "No se pudo actualizar completamente el historial desde Supabase:",
+                        resultado.reason
+                    );
+                }
+            });
+        });
+    }, [])
+);
 
     // Controla qué tipo de eventos se muestran en el historial.
     const [historyFilter, setHistoryFilter] = useState<HistoryFilter>("todos");
