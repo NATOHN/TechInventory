@@ -3,6 +3,7 @@
     "name": "TechInventory",
     "slug": "TechInventory",
     "version": "1.0.0",
+    "scheme": "techinventory",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -21,7 +22,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.fnoel.TechInventory"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -29,6 +31,11 @@
     "plugins": [
       "expo-localization",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cd0cefad-09bd-49f6-bb7e-73dbb4fad27e"
+      }
+    }
   }
 }

@@ -1,6 +1,6 @@
 // 1. Importaciones.
 import { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, } from 'react-native';
 
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
@@ -9,7 +9,17 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 
-export default function LoginScreen() {
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
+import type { RootStackParamList } from '../navigation/StackNavigator';
+
+// Permitimos navegar al flujo de recuperación de contraseña.
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  'Login'
+>;
+
+export default function LoginScreen({ navigation}: Props) {
   // 2. Estados utilizados únicamente por el formulario de inicio de sesión.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -104,6 +114,28 @@ export default function LoginScreen() {
         onChange={setPassword}
       />
 
+      {/* 7. Recuperación de contraseña mediante el correo registrado en Supabase. */}
+<TouchableOpacity
+  style={styles.forgotButton}
+  onPress={() =>
+    navigation.navigate('ForgotPassword', {
+      emailInicial: email.trim().toLowerCase(),
+    })
+  }
+  disabled={loading}
+>
+  <Text
+    style={[
+      styles.forgotText,
+      { color: colors.primary },
+    ]}
+  >
+    ¿Olvidaste tu contraseña?
+  </Text>
+</TouchableOpacity>
+
+      
+
       <CustomButton
         title={loading ? 'Ingresando...' : t('loginButton')}
         onPress={handleLogin}
@@ -128,4 +160,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
+
+  forgotButton: {
+  alignSelf: 'flex-end',
+  marginTop: -4,
+  marginBottom: 18,
+  paddingVertical: 4,
+},
+
+forgotText: {
+  fontSize: 14,
+  fontWeight: '600',
+},
 });
