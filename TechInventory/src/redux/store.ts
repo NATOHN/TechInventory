@@ -18,9 +18,9 @@ import { saveEquipments, loadEquipments } from './equipmentStorage';
 import { saveMaintenances, loadMaintenances } from './maintenanceStorage';
 import { saveNotifications, loadNotifications } from './notificationsStorage';
 // Sincroniza con Supabase únicamente los equipos que realmente cambian en Redux.
-import {  obtenerEquiposDesdeSupabase, sincronizarEquipoConSupabase } from '../services/equiposService';
+import { obtenerEquiposDesdeSupabase, sincronizarEquipoConSupabase } from '../services/equiposService';
 // Sincroniza los cambios actuales de Mantenimiento con PostgreSQL.
-import { sincronizarMantenimientoConSupabase } from '../services/mantenimientosService';
+import { obtenerMantenimientosDesdeSupabase, sincronizarMantenimientoConSupabase } from '../services/mantenimientosService';
 
 
 // 2. Creamos el Store principal de TechInventory.
@@ -41,8 +41,8 @@ export const store = configureStore({
         // La propiedad empleados mantendrá en Redux el catálogo obtenido desde Supabase.
         empleados: empleadosReducer,
         // Los indicadores de Home y Reportes se almacenan por separado
-// para no depender de los datos temporales recuperados desde AsyncStorage.
-analytics: analyticsReducer,
+        // para no depender de los datos temporales recuperados desde AsyncStorage.
+        analytics: analyticsReducer,
     },
 });
 
@@ -60,6 +60,32 @@ let equipmentInitializationComplete = false;
 // empleado, lleguen a Supabase en un orden diferente al ocurrido dentro de Redux.
 const equipmentSyncQueue = new Map<string, Promise<void>>();
 
+// Refresca el inventario desde Supabase sin interpretar la carga remota
+// como si fueran modificaciones realizadas localmente por el usuario.
+export const refrescarEquiposDesdeSupabase = async () => {
+    // Antes de leer Supabase esperamos cualquier cambio local que todavía
+    // se encuentre sincronizándose. Esto evita traer una versión antigua
+    // justo después de registrar o modificar un equipo.
+    await Promise.allSettled([...equipmentSyncQueue.values()]);
+
+    const equiposSupabase = await obtenerEquiposDesdeSupabase();
+
+    // Conservamos el estado actual de la bandera porque esta función
+    // también puede utilizarse durante la inicialización de la aplicación.
+    const initializationAnterior = equipmentInitializationComplete;
+
+    // La carga proveniente de Supabase no debe volver a enviarse a Supabase.
+    equipmentInitializationComplete = false;
+
+    try {
+        store.dispatch(cargarEquipos(equiposSupabase));
+    } finally {
+        equipmentInitializationComplete = initializationAnterior;
+    }
+
+    return equiposSupabase;
+};
+
 
 // Guardamos la referencia actual para persistir únicamente cuando Mantenimiento cambie.
 let previousMaintenances = store.getState().maintenance.maintenances;
@@ -71,6 +97,35 @@ let maintenanceInitializationComplete = false;
 // Cada mantenimiento utiliza su propia cola para conservar el orden
 // cuando se realizan varios cambios consecutivos.
 const maintenanceSyncQueue = new Map<string, Promise<void>>();
+
+// Recupera nuevamente los mantenimientos compartidos desde Supabase
+// sin interpretar la carga remota como modificaciones locales.
+export const refrescarMantenimientosDesdeSupabase = async () => {
+    // Esperamos cualquier sincronización local pendiente antes de leer nuevamente.
+    await Promise.allSettled([...maintenanceSyncQueue.values()]);
+
+    const mantenimientosSupabase =
+        await obtenerMantenimientosDesdeSupabase();
+
+    // Conservamos el estado anterior de la bandera.
+    const initializationAnterior =
+        maintenanceInitializationComplete;
+
+    // Mientras cargamos información remota evitamos volverla
+    // a enviar inmediatamente hacia Supabase.
+    maintenanceInitializationComplete = false;
+
+    try {
+        store.dispatch(
+            cargarMantenimientos(mantenimientosSupabase)
+        );
+    } finally {
+        maintenanceInitializationComplete =
+            initializationAnterior;
+    }
+
+    return mantenimientosSupabase;
+};
 
 // 8. Nos suscribimos a los cambios del Store. Esta función se ejecutará cada vez que Redux
 // actualice alguno de sus estados.
@@ -149,7 +204,7 @@ store.subscribe(() => {
         }
     }
 
-   
+
 
     // Obtenemos los mantenimientos actuales directamente del estado ya leído.
     const maintenances = currentState.maintenance.maintenances;
@@ -228,17 +283,9 @@ store.subscribe(() => {
 // AsyncStorage queda únicamente como respaldo temporal si no existe conexión.
 const initializeEquipments = async () => {
     try {
-        // Supabase es ahora la fuente principal del inventario.
-        const equiposSupabase = await obtenerEquiposDesdeSupabase();
-
-        // Sustituimos completamente cualquier estado local por
-        // la información compartida entre todos los dispositivos.
-        store.dispatch(
-            cargarEquipos(equiposSupabase)
-        );
-
-        // Conservamos una copia local como respaldo temporal.
-        await saveEquipments(equiposSupabase);
+        // Utilizamos el mismo refresco seguro empleado por las pantallas.
+        // La carga remota no se vuelve a interpretar como una edición local.
+        const equiposSupabase = await refrescarEquiposDesdeSupabase();
 
         console.log(
             'Equipos recuperados desde Supabase:',
@@ -274,22 +321,45 @@ const initializeEquipments = async () => {
 // 15. Ejecutamos la carga cuando se crea el Store.
 initializeEquipments();
 
-// Recuperamos los mantenimientos guardados cuando inicia la aplicación.
+// Recupera primero los mantenimientos compartidos desde Supabase.
+// AsyncStorage queda únicamente como respaldo temporal si no existe conexión.
 const initializeMaintenances = async () => {
-    const savedMaintenances = await loadMaintenances();
+    try {
+        // Supabase pasa a ser la fuente principal del módulo.
+        const mantenimientosSupabase =
+            await refrescarMantenimientosDesdeSupabase();
 
-    // Si existen datos guardados, reemplazamos los datos iniciales del Slice.
-    if (savedMaintenances !== null) {
-        store.dispatch(cargarMantenimientos(savedMaintenances));
+        // Guardamos una copia local únicamente como respaldo.
+        await saveMaintenances(mantenimientosSupabase);
 
         console.log(
-            'Mantenimientos recuperados de AsyncStorage:',
-            savedMaintenances.length
+            'Mantenimientos recuperados desde Supabase:',
+            mantenimientosSupabase.length
         );
+    } catch (error) {
+        console.log(
+            'No se pudieron cargar los mantenimientos desde Supabase:',
+            error
+        );
+
+        // Solo si Supabase falla utilizamos la última copia disponible.
+        const savedMaintenances =
+            await loadMaintenances();
+
+        if (savedMaintenances !== null) {
+            store.dispatch(
+                cargarMantenimientos(savedMaintenances)
+            );
+
+            console.log(
+                'Mantenimientos recuperados desde respaldo local:',
+                savedMaintenances.length
+            );
+        }
+    } finally {
+        // Desde este momento los cambios nuevos sí se sincronizan.
+        maintenanceInitializationComplete = true;
     }
-    // A partir de este momento los nuevos cambios del usuario
-    // sí pueden sincronizarse con Supabase.
-    maintenanceInitializationComplete = true;
 };
 
 // Ejecutamos la recuperación al crear el Store.
