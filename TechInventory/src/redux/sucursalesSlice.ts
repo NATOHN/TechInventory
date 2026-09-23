@@ -3,7 +3,7 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 // 2. Importamos el servicio que consulta Supabase y el tipo de cada sucursal.
-import { obtenerSucursales, Sucursal } from '../services/sucursalesService';
+import { crearSucursal, obtenerSucursales, Sucursal } from '../services/sucursalesService';
 
 // 3. Definimos el estado que manejará este módulo dentro de Redux.
 type SucursalesState = {
@@ -38,6 +38,26 @@ export const cargarSucursalesDesdeSupabase = createAsyncThunk<
     }
 );
 
+
+// Creamos una acción asíncrona para registrar una nueva sucursal en Supabase.
+// Recibimos únicamente el nombre y devolvemos la sucursal creada.
+export const crearSucursalEnSupabase = createAsyncThunk<
+    Sucursal,
+    string,
+    { rejectValue: string }
+>(
+    'sucursales/crearEnSupabase',
+    async (nombre, { rejectWithValue }) => {
+        try {
+            return await crearSucursal(nombre);
+        } catch (error) {
+            // Guardamos un mensaje entendible si Supabase no permite crear la sucursal.
+            const mensaje = error instanceof Error ? error.message : 'No se pudo crear la sucursal.';
+            return rejectWithValue(mensaje);
+        }
+    }
+);
+
 // 6. Creamos el Slice encargado de mantener las sucursales disponibles en la interfaz.
 const sucursalesSlice = createSlice({
     name: 'sucursales',
@@ -60,6 +80,26 @@ const sucursalesSlice = createSlice({
         builder.addCase(cargarSucursalesDesdeSupabase.rejected, (state, action) => {
             state.cargando = false;
             state.error = action.payload ?? 'No se pudieron cargar las sucursales.';
+        });
+
+        // Mientras se registra la nueva sucursal, reutilizamos el estado de carga existente.
+        builder.addCase(crearSucursalEnSupabase.pending, (state) => {
+            state.cargando = true;
+            state.error = null;
+        });
+
+        // Al terminar correctamente, agregamos la nueva sucursal al catálogo de Redux.
+        // La ordenamos nuevamente para mantener el listado alfabético.
+        builder.addCase(crearSucursalEnSupabase.fulfilled, (state, action) => {
+            state.sucursales.push(action.payload);
+            state.sucursales.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            state.cargando = false;
+        });
+
+        // Si Supabase devuelve un error, lo almacenamos para poder mostrarlo en la interfaz.
+        builder.addCase(crearSucursalEnSupabase.rejected, (state, action) => {
+            state.cargando = false;
+            state.error = action.payload ?? 'No se pudo crear la sucursal.';
         });
     },
 });
