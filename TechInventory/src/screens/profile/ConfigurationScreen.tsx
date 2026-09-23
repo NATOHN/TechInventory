@@ -67,54 +67,43 @@ export default function ConfigurationScreen({ navigation }: any) {
 
             <TouchableOpacity
               style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={avisarProximamente}
-            >
-              <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
-              <View style={styles.rowText}>
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Roles y permisos</Text>
-                <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Define accesos y permisos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
               // Abre la administración de sucursales y departamentos.
               onPress={() => navigation.navigate('LocationsScreen')}
             >
               <Ionicons name="location-outline" size={22} color={colors.primary} />
               <View style={styles.rowText}>
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Sucursales y zonas</Text>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>Sucursales y Departamentos</Text>
                 <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Administra ubicaciones</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
 
+            {/* Administración de empleados disponible únicamente para administradores. */}
             <TouchableOpacity
               style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={avisarProximamente}
+              onPress={() => navigation.navigate('EmployeesScreen')}
             >
-              <Ionicons name="server-outline" size={22} color={colors.primary} />
+              <Ionicons name="id-card-outline" size={22} color={colors.primary} />
+
               <View style={styles.rowText}>
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Catálogo de modelos</Text>
-                <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Gestiona los modelos de equipos</Text>
+                <Text style={[styles.rowTitle, { color: colors.text }]}>
+                  Empleados
+                </Text>
+
+                <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>
+                  Registra y consulta empleados
+                </Text>
               </View>
+
               <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={avisarProximamente}
-            >
-              <Ionicons name="briefcase-outline" size={22} color={colors.primary} />
-              <View style={styles.rowText}>
-                <Text style={[styles.rowTitle, { color: colors.text }]}>Catálogo de repuestos</Text>
-                <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Administra el inventario de repuestos</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-            </TouchableOpacity>
+
           </>
         )}
+
+
+
 
         {/* 10. Seccion Aplicacion: preferencias visibles para cualquier rol */}
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Aplicación</Text>
@@ -149,45 +138,53 @@ export default function ConfigurationScreen({ navigation }: any) {
           />
         </View>
 
-        <TouchableOpacity
-          style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={avisarProximamente}
-        >
-          <Ionicons name="notifications-outline" size={22} color={colors.primary} />
-          <View style={styles.rowText}>
-            <Text style={[styles.rowTitle, { color: colors.text }]}>Notificaciones</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Configura tus notificaciones</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
+        {/* Cuenta: disponible para administrador y técnico. */}
+<Text style={[styles.sectionTitle, { color: colors.text }]}>
+  Cuenta
+</Text>
 
-        {/* 11. Seccion Datos: acciones sobre respaldo y exportacion, aun no implementadas */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Datos</Text>
+<TouchableOpacity
+  style={[
+    styles.row,
+    {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+    },
+  ]}
+  onPress={() => navigation.navigate('ChangePasswordScreen')}
+>
+  <Ionicons
+    name="key-outline"
+    size={22}
+    color={colors.primary}
+  />
 
-        <TouchableOpacity
-          style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={avisarProximamente}
-        >
-          <Ionicons name="cloud-upload-outline" size={22} color={colors.primary} />
-          <View style={styles.rowText}>
-            <Text style={[styles.rowTitle, { color: colors.text }]}>Respaldo y sincronización</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Protege tu información</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
+  <View style={styles.rowText}>
+    <Text
+      style={[
+        styles.rowTitle,
+        { color: colors.text },
+      ]}
+    >
+      Cambiar contraseña
+    </Text>
 
-        <TouchableOpacity
-          style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={avisarProximamente}
-        >
-          <Ionicons name="download-outline" size={22} color={colors.primary} />
-          <View style={styles.rowText}>
-            <Text style={[styles.rowTitle, { color: colors.text }]}>Exportar información</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.textSecondary }]}>Descarga datos del sistema</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
-        </TouchableOpacity>
+    <Text
+      style={[
+        styles.rowSubtitle,
+        { color: colors.textSecondary },
+      ]}
+    >
+      Actualiza la contraseña de tu cuenta
+    </Text>
+  </View>
 
+  <Ionicons
+    name="chevron-forward"
+    size={20}
+    color={colors.textSecondary}
+  />
+</TouchableOpacity>
         <View style={{ height: 30 }} />
       </ScrollView>
     </SafeAreaView>
