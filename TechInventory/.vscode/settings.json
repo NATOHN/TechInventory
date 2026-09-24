@@ -1,0 +1,7 @@
+{
+    // Activamos Deno únicamente para las Edge Functions de Supabase.
+    // El código React Native dentro de src seguirá trabajando normalmente con TypeScript/Expo.
+    "deno.enablePaths": [
+        "./supabase/functions"
+    ]
+}

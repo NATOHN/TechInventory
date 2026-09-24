@@ -1,9 +1,11 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { RouteProp } from '@react-navigation/native';
+import {NavigatorScreenParams, RouteProp } from '@react-navigation/native';
 import HomeTab from '../screens/tabs/HomeTab';
-import ProfileTab from '../screens/tabs/ProfileTab';
+import ProfileNavigator from './ProfileNavigator';
 import EquipmentNavigator from './EquipmentNavigator';
+import MaintenanceNavigator, { type MaintenanceStackParamList } from './MaintenanceNavigator';
+import ReportsScreen from '../screens/reports/ReportsScreen';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -11,6 +13,8 @@ export type TabsParamList = {
   Inicio: undefined;
   Perfil: undefined;
   Equipos: undefined;
+  Mantenimiento: NavigatorScreenParams<MaintenanceStackParamList> | undefined;
+  Reportes: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -34,10 +38,13 @@ export default function TabsNavigator() {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
-        tabBarIcon: ({ color, size }) => {
+         tabBarIcon: ({ color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
           if (route.name === 'Inicio') iconName = 'home';
           else if (route.name === 'Equipos') iconName = 'cube';
+          // 1. Ícono de llave inglesa (construct = llave + destornillador cruzados) para Mantenimiento.
+          else if (route.name === 'Mantenimiento') iconName = 'construct';
+          else if (route.name === 'Reportes') iconName = 'stats-chart';
           else if (route.name === 'Perfil') iconName = 'person';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -58,14 +65,30 @@ export default function TabsNavigator() {
           tabBarLabel: t("equipmentTab"),
         }}
       />
-      
+
       <Tab.Screen
-        name='Perfil'
-        component={ProfileTab}
+      name='Mantenimiento'
+      component={MaintenanceNavigator}
+      options={{
+        tabBarLabel: t("maintenanceTab"),
+      }}
+      />
+
+      <Tab.Screen
+        name='Reportes'
+        component={ReportsScreen}
         options={{
-          tabBarLabel: t("profileTab"),
+          tabBarLabel: t('reportsTab'),
         }}
       />
+      
+      <Tab.Screen
+  name='Perfil'
+  component={ProfileNavigator}
+  options={{
+    tabBarLabel: t("profileTab"),
+  }}
+/>
 
     </Tab.Navigator>
   );

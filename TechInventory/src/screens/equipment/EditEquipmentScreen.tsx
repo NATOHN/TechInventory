@@ -47,6 +47,12 @@ const EditEquipmentScreen = ({ route, navigation }: Props) => {
         )
     );
 
+    // Obtenemos todos los equipos para validar que la serie
+    // no esté siendo utilizada por otro equipo.
+    const equipos = useAppSelector(
+        (state) => state.equipment.equipments
+    );
+
 
     //7. Copia editable de la marca actual del equipo.
     const [marca, setMarca] = useState(equipo?.marca ?? "");
@@ -130,10 +136,44 @@ const EditEquipmentScreen = ({ route, navigation }: Props) => {
     const guardarCambios = () => {
 
         // Evitamos guardar información incompleta.
+        // Validamos campos obligatorios.
         if (!marca || !modelo.trim() || !serie.trim() || !foto) {
             Alert.alert(
                 t("incompleteFieldsTitle"),
                 t("incompleteFieldsMessage")
+            );
+            return;
+        }
+
+        // Verificamos si el usuario realmente modificó algún dato.
+        // Si todo permanece igual, evitamos realizar un dispatch innecesario.
+        const noHayCambios =
+            marca === equipo.marca &&
+            modelo.trim() === equipo.modelo &&
+            serie.trim() === equipo.serie &&
+            foto === equipo.foto;
+
+        if (noHayCambios) {
+            Alert.alert(
+                t("noChangesTitle"),
+                t("noChangesMessage")
+            );
+            return;
+        }
+
+        // Verificamos si otro equipo ya utiliza el número de serie ingresado.
+        // Excluimos el equipo que estamos editando mediante su código único.
+        const serieDuplicada = equipos.some(
+            (otroEquipo) =>
+                otroEquipo.codigo !== equipo.codigo &&
+                otroEquipo.serie.trim().toLowerCase() ===
+                serie.trim().toLowerCase()
+        );
+
+        if (serieDuplicada) {
+            Alert.alert(
+                t("duplicateSerialTitle"),
+                t("duplicateSerialMessage")
             );
             return;
         }

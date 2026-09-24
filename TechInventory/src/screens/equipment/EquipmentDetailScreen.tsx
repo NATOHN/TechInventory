@@ -13,7 +13,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { cambiarUbicacionEquipo, darDeBajaEquipo, reactivarEquipo } from "../../redux/equipmentSlice";
-import { BRANCH_OPTIONS, EMPLOYEE_OPTIONS } from "../../data/equipmentCatalogs";
+
 
 
 type Props = NativeStackScreenProps<
@@ -30,6 +30,17 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Buscamos en Redux el equipo que corresponde al código recibido.
     const equipoRedux = useAppSelector((state) => state.equipment.equipments.find((equipo) => equipo.codigo === codigo));
 
+    // Leemos los mantenimientos para evitar abrir un segundo proceso
+    // sobre el mismo equipo desde el detalle.
+    const maintenances = useAppSelector(
+        (state) => state.maintenance.maintenances
+    );
+
+    // Obtenemos desde Redux los catálogos que fueron cargados previamente desde Supabase.
+    // La interfaz continuará trabajando con Redux, mientras Supabase mantiene la información persistente.
+    const sucursalesSupabase = useAppSelector((state) => state.sucursales.sucursales);
+    const departamentosSupabase = useAppSelector((state) => state.departamentos.departamentos);
+    const empleadosSupabase = useAppSelector((state) => state.empleados.empleados);
 
     // Si Redux todavía no encuentra el equipo, usamos temporalmente
     // los datos recibidos mediante la navegación.
@@ -62,30 +73,37 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
         empleadoAsignado === "Sin asignar" ? "" : empleadoAsignado
     );
 
-    // Obtenemos las sucursales desde el catálogo independiente.
-    const sucursalesDisponibles = BRANCH_OPTIONS.map((branch) => branch.name);
+    // Convertimos las sucursales de Supabase a nombres para conservar
+    // la lógica actual del formulario y no modificar Equipment todavía.
+    const sucursalesDisponibles = sucursalesSupabase.map((branch) => branch.nombre);
 
-
-    // Buscamos la sucursal seleccionada dentro del catálogo.
-    const selectedBranchOption = BRANCH_OPTIONS.find(
-        (branch) => branch.name === selectedNewBranch
+    // Buscamos la sucursal seleccionada para obtener su ID real de Supabase.
+    const selectedBranchOption = sucursalesSupabase.find(
+        (branch) => branch.nombre === selectedNewBranch
     );
 
-    // // Obtenemos los departamentos pertenecientes a la sucursal seleccionada.
-    const departamentosDisponibles = selectedBranchOption?.departments.map((department) => department.name) ?? [];
+    // Obtenemos únicamente los departamentos relacionados con la sucursal seleccionada.
+    const departamentosDisponibles = selectedBranchOption
+        ? departamentosSupabase
+            .filter((department) => department.sucursal_id === selectedBranchOption.id)
+            .map((department) => department.nombre)
+        : [];
 
-    // Buscamos el departamento seleccionado dentro de la nueva sucursal.
-    const selectedDepartmentOption = selectedBranchOption?.departments.find(
-        (department) => department.name === selectedNewDepartment
+    // Buscamos el departamento seleccionado y obtenemos su ID real de Supabase.
+    const selectedDepartmentOption = departamentosSupabase.find(
+        (department) =>
+            department.nombre === selectedNewDepartment &&
+            department.sucursal_id === selectedBranchOption?.id
     );
 
-    // Mostramos únicamente los empleados que pertenecen
-    // a la nueva sucursal y departamento seleccionados.
-    const empleadosDisponibles = EMPLOYEE_OPTIONS.filter(
-        (employee) =>
-            employee.branchId === selectedBranchOption?.id &&
-            employee.departmentId === selectedDepartmentOption?.id
-    );
+    // Mostramos únicamente empleados activos pertenecientes al departamento seleccionado.
+    const empleadosDisponibles = selectedDepartmentOption
+        ? empleadosSupabase.filter(
+            (employee) =>
+                employee.departamento_id === selectedDepartmentOption.id &&
+                employee.activo
+        )
+        : [];
 
     // Controla la apertura de la vista previa para imprimir o reimprimir el QR
     const [printQrModalVisible, setPrintQrModalVisible] = useState(false);
@@ -104,6 +122,15 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
     // Solicita confirmación antes de dar de baja un equipo.
     // El equipo no se elimina, únicamente cambia su estado a "baja".
     const handleDarDeBaja = () => {
+        // No permitimos dar de baja un equipo que todavía tenga un empleado asignado.
+        if (empleadoAsignado && empleadoAsignado !== "Sin asignar") {
+            Alert.alert(
+                "Equipo asignado",
+                "Antes de dar de baja este equipo debes quitar el empleado asignado."
+            );
+            return;
+        }
+
         Alert.alert(
             t("decommissionTitle"),
             `${t("decommissionMessageStart")} ${equipo.codigo}${t("decommissionMessageEnd")}`,
@@ -167,6 +194,62 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
             ]
         );
     };
+
+
+    // Abre el mantenimiento correspondiente al equipo actual.
+    const handleAbrirMantenimiento = () => {
+
+        // Los equipos dados de baja no pueden recibir mantenimiento.
+        if (equipo.status === "baja") {
+            Alert.alert(
+                "Equipo dado de baja",
+                `El equipo ${equipo.codigo} está dado de baja y no puede recibir mantenimiento.`
+            );
+            return;
+        }
+
+        // Verificamos si ya existe un mantenimiento abierto para este equipo.
+        const mantenimientoEnProceso = maintenances.find(
+            (mantenimiento) =>
+                mantenimiento.codigoEquipo === equipo.codigo &&
+                mantenimiento.status === "en_proceso"
+        );
+
+        // Si ya existe, permitimos abrir ese mantenimiento en vez de crear otro.
+        if (mantenimientoEnProceso) {
+            Alert.alert(
+                "Mantenimiento en proceso",
+                `El equipo ${equipo.codigo} ya tiene un mantenimiento en proceso.`,
+                [
+                    {
+                        text: "Cancelar",
+                        style: "cancel",
+                    },
+                    {
+                        text: "Abrir mantenimiento",
+                        onPress: () =>
+                            navigation.getParent()?.navigate("Mantenimiento", {
+                                screen: "NewMaintenanceScreen",
+                                params: {
+                                    maintenanceId: mantenimientoEnProceso.id,
+                                },
+                            }),
+                    },
+                ]
+            );
+            return;
+        }
+
+        // Como ya conocemos el equipo, abrimos directamente el formulario
+        // sin necesidad de volver a escanear el código QR.
+        navigation.getParent()?.navigate("Mantenimiento", {
+            screen: "NewMaintenanceScreen",
+            params: {
+                codigoEquipo: equipo.codigo,
+            },
+        });
+    };
+
 
     return (
         //ScrollView
@@ -245,7 +328,7 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                     <View style={styles.actionsRow}>
                         <TouchableOpacity
                             style={[styles.actionButton, { backgroundColor: colors.cardBackground, borderColor: colors.cardBorder }]}
-                            onPress={() => console.log("Abrir mantenimiento")}
+                            onPress={handleAbrirMantenimiento}
                         >
                             <Ionicons name="construct-outline" size={24} color={colors.primary} />
                             <Text style={[styles.actionText, { color: colors.text }]}>{t("maintenanceAction")}</Text>
@@ -467,30 +550,20 @@ const EquipmentDetailScreen = ({ route, navigation }: Props) => {
                                 </Text>
                             </TouchableOpacity>
 
-                            {/* Mostramos únicamente empleados válidos para la nueva ubicación. */}
+                            {/* Mostramos únicamente empleados activos de Supabase válidos para el departamento seleccionado. */}
                             {empleadosDisponibles.map((employee) => (
                                 <TouchableOpacity
                                     key={employee.id}
                                     style={[styles.locationOption, {
-                                        backgroundColor:
-                                            selectedNewEmployee === employee.name
-                                                ? colors.primary
-                                                : colors.surface,
-
-                                        borderColor:
-                                            selectedNewEmployee === employee.name
-                                                ? colors.primary
-                                                : colors.border
+                                        backgroundColor: selectedNewEmployee === employee.nombre ? colors.primary : colors.surface,
+                                        borderColor: selectedNewEmployee === employee.nombre ? colors.primary : colors.border
                                     }]}
-                                    onPress={() => setSelectedNewEmployee(employee.name)}
+                                    onPress={() => setSelectedNewEmployee(employee.nombre)}
                                 >
                                     <Text style={{
-                                        color:
-                                            selectedNewEmployee === employee.name
-                                                ? colors.background
-                                                : colors.textSecondary
+                                        color: selectedNewEmployee === employee.nombre ? colors.background : colors.textSecondary
                                     }}>
-                                        {employee.name}
+                                        {employee.nombre}
                                     </Text>
                                 </TouchableOpacity>
                             ))}
