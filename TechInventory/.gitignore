@@ -44,3 +44,6 @@ yarn-error.*
 .env
 .env.local
 .env.*.local
+
+# Archivos temporales generados por Supabase CLI
+supabase/.temp/

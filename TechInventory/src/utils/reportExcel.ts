@@ -18,17 +18,141 @@ import {
 } from '../services/reportesService';
 
 // 4. Convierte las fechas ISO a una presentación legible.
-const formatearFecha = (fecha: string | null) => {
+// Formatea las fechas según el idioma seleccionado en TechInventory.
+const formatearFecha = (
+  fecha: string | null,
+  language: 'es' | 'en'
+) => {
   if (!fecha) return '';
 
-  return new Date(fecha).toLocaleString();
+  return new Date(fecha).toLocaleString(
+    language === 'en' ? 'en-US' : 'es-HN'
+  );
 };
 
 // 5. Genera y comparte el reporte real de TechInventory en formato Excel.
 export const exportarReporteExcel = async (
   data: ReportData,
-  periodo: ReportPeriod
+  periodo: ReportPeriod,
+  language: 'es' | 'en'
 ) => {
+
+  // Textos utilizados dentro del archivo Excel.
+  // Se mantienen separados de los valores internos almacenados en Supabase.
+  const textos =
+    language === 'en'
+      ? {
+        title: 'TECHINVENTORY - GENERAL REPORT',
+        period: 'Period',
+        generated: 'Generated',
+        currentMonth: 'This month',
+        last30Days: 'Last 30 days',
+        currentYear: 'This year',
+        allHistory: 'All history',
+
+        equipmentIndicators: 'EQUIPMENT INDICATORS',
+        registeredEquipment: 'Registered equipment',
+        inUse: 'In use',
+        available: 'Available',
+        inMaintenance: 'In maintenance',
+        decommissioned: 'Decommissioned',
+
+        maintenanceIndicators: 'MAINTENANCE INDICATORS',
+        maintenances: 'Maintenance',
+        preventive: 'Preventive',
+        corrective: 'Corrective',
+        inProgress: 'In progress',
+        completed: 'Completed',
+
+        code: 'Code',
+        brand: 'Brand',
+        model: 'Model',
+        serial: 'Serial number',
+        status: 'Status',
+        branch: 'Branch',
+        department: 'Department',
+        employee: 'Employee',
+        registrationDate: 'Registration date',
+
+        maintenanceCode: 'Maintenance code',
+        equipmentCode: 'Equipment code',
+        type: 'Type',
+        technician: 'Technician',
+        startDate: 'Start date',
+        completionDate: 'Completion date',
+
+        summarySheet: 'Summary',
+        equipmentSheet: 'Equipment',
+        maintenanceSheet: 'Maintenance',
+
+        unassigned: 'Unassigned',
+        unidentified: 'Unidentified',
+
+        fileName: 'Report',
+        shareTitle: 'Export TechInventory report',
+        sharingUnavailable: 'This device does not allow file sharing.',
+      }
+      : {
+        title: 'TECHINVENTORY - REPORTE GENERAL',
+        period: 'Período',
+        generated: 'Generado',
+        currentMonth: 'Este mes',
+        last30Days: 'Últimos 30 días',
+        currentYear: 'Este año',
+        allHistory: 'Todo el historial',
+
+        equipmentIndicators: 'INDICADORES DE EQUIPOS',
+        registeredEquipment: 'Equipos registrados',
+        inUse: 'En uso',
+        available: 'Disponibles',
+        inMaintenance: 'En mantenimiento',
+        decommissioned: 'Dados de baja',
+
+        maintenanceIndicators: 'INDICADORES DE MANTENIMIENTO',
+        maintenances: 'Mantenimientos',
+        preventive: 'Preventivos',
+        corrective: 'Correctivos',
+        inProgress: 'En proceso',
+        completed: 'Finalizados',
+
+        code: 'Código',
+        brand: 'Marca',
+        model: 'Modelo',
+        serial: 'Serie',
+        status: 'Estado',
+        branch: 'Sucursal',
+        department: 'Departamento',
+        employee: 'Empleado',
+        registrationDate: 'Fecha de registro',
+
+        maintenanceCode: 'Código mantenimiento',
+        equipmentCode: 'Código equipo',
+        type: 'Tipo',
+        technician: 'Técnico',
+        startDate: 'Fecha inicio',
+        completionDate: 'Fecha finalización',
+
+        summarySheet: 'Resumen',
+        equipmentSheet: 'Equipos',
+        maintenanceSheet: 'Mantenimientos',
+
+        unassigned: 'Sin asignar',
+        unidentified: 'No identificado',
+
+        fileName: 'Reporte',
+        shareTitle: 'Exportar reporte TechInventory',
+        sharingUnavailable: 'El dispositivo no permite compartir archivos.',
+      };
+
+  const etiquetaPeriodo =
+    periodo === 'mes_actual'
+      ? textos.currentMonth
+      : periodo === 'ultimos_30'
+        ? textos.last30Days
+        : periodo === 'anio_actual'
+          ? textos.currentYear
+          : textos.allHistory;
+
   const rango = obtenerRangoReporte(periodo);
 
   // 6. Resumen general del período seleccionado.
@@ -37,48 +161,53 @@ export const exportarReporteExcel = async (
   );
 
   const resumen = [
-    ['TECHINVENTORY - REPORTE GENERAL'],
+    [textos.title],
     [],
-    ['Período', rango.etiqueta],
-    ['Generado', new Date().toLocaleString()],
+    [textos.period, etiquetaPeriodo],
+    [
+      textos.generated,
+      new Date().toLocaleString(
+        language === 'en' ? 'en-US' : 'es-HN'
+      ),
+    ],
     [],
-    ['INDICADORES DE EQUIPOS'],
-    ['Equipos registrados', data.equipos.length],
+    [textos.equipmentIndicators],
+    [textos.registeredEquipment, data.equipos.length],
 
     [
-      'En uso',
+      textos.inUse,
       activos.filter(
         (equipo) => equipo.empleado !== 'Sin asignar'
       ).length,
     ],
 
     [
-      'Disponibles',
+      textos.available,
       activos.filter(
         (equipo) => equipo.empleado === 'Sin asignar'
       ).length,
     ],
 
     [
-      'En mantenimiento',
+      textos.inMaintenance,
       data.equipos.filter(
         (equipo) => equipo.status === 'taller'
       ).length,
     ],
 
     [
-      'Dados de baja',
+      textos.decommissioned,
       data.equipos.filter(
         (equipo) => equipo.status === 'baja'
       ).length,
     ],
 
     [],
-    ['INDICADORES DE MANTENIMIENTO'],
-    ['Mantenimientos', data.mantenimientos.length],
+    [textos.maintenanceIndicators],
+    [textos.maintenances, data.mantenimientos.length],
 
     [
-      'Preventivos',
+      textos.preventive,
       data.mantenimientos.filter(
         (mantenimiento) =>
           mantenimiento.tipo === 'preventivo'
@@ -86,7 +215,7 @@ export const exportarReporteExcel = async (
     ],
 
     [
-      'Correctivos',
+      textos.corrective,
       data.mantenimientos.filter(
         (mantenimiento) =>
           mantenimiento.tipo === 'correctivo'
@@ -94,7 +223,7 @@ export const exportarReporteExcel = async (
     ],
 
     [
-      'En proceso',
+      textos.inProgress,
       data.mantenimientos.filter(
         (mantenimiento) =>
           mantenimiento.status === 'en_proceso'
@@ -102,7 +231,7 @@ export const exportarReporteExcel = async (
     ],
 
     [
-      'Finalizados',
+      textos.completed,
       data.mantenimientos.filter(
         (mantenimiento) =>
           mantenimiento.status === 'finalizado'
@@ -110,55 +239,76 @@ export const exportarReporteExcel = async (
     ],
   ];
 
-  // 7. Hoja detallada de equipos.
   const equiposExcel = data.equipos.map((equipo) => ({
-    Código: equipo.codigo,
-    Marca: equipo.marca,
-    Modelo: equipo.modelo,
-    Serie: equipo.serie,
+    [textos.code]: equipo.codigo,
+    [textos.brand]: equipo.marca,
+    [textos.model]: equipo.modelo,
+    [textos.serial]: equipo.serie,
 
-    Estado:
+    [textos.status]:
       equipo.status === 'taller'
-        ? 'Mantenimiento'
+        ? textos.inMaintenance
         : equipo.status === 'baja'
-          ? 'Baja'
+          ? textos.decommissioned
           : equipo.empleado !== 'Sin asignar'
-            ? 'En uso'
-            : 'Disponible',
+            ? textos.inUse
+            : textos.available,
 
-    Sucursal: equipo.sucursal,
-    Departamento: equipo.departamento,
-    Empleado: equipo.empleado,
-    'Fecha de registro': formatearFecha(equipo.createdAt),
+    [textos.branch]:
+      equipo.sucursal === 'No identificada'
+        ? textos.unidentified
+        : equipo.sucursal,
+
+    [textos.department]:
+      equipo.departamento === 'No identificado'
+        ? textos.unidentified
+        : equipo.departamento,
+
+    [textos.employee]:
+      equipo.empleado === 'Sin asignar'
+        ? textos.unassigned
+        : equipo.empleado,
+
+    [textos.registrationDate]:
+      formatearFecha(equipo.createdAt, language),
   }));
 
   // 8. Hoja detallada de mantenimientos.
   const mantenimientosExcel =
     data.mantenimientos.map((mantenimiento) => ({
-      'Código mantenimiento':
+      [textos.maintenanceCode]:
         mantenimiento.codigoMantenimiento,
 
-      'Código equipo':
-        mantenimiento.codigoEquipo,
+      [textos.equipmentCode]:
+        mantenimiento.codigoEquipo === 'No identificado'
+          ? textos.unidentified
+          : mantenimiento.codigoEquipo,
 
-      Tipo:
+      [textos.type]:
         mantenimiento.tipo === 'preventivo'
-          ? 'Preventivo'
-          : 'Correctivo',
+          ? textos.preventive
+          : textos.corrective,
 
-      Estado:
+      [textos.status]:
         mantenimiento.status === 'en_proceso'
-          ? 'En proceso'
-          : 'Finalizado',
+          ? textos.inProgress
+          : textos.completed,
 
-      Técnico: mantenimiento.tecnico,
+      [textos.technician]:
+        mantenimiento.tecnico === 'No identificado'
+          ? textos.unidentified
+          : mantenimiento.tecnico,
 
-      'Fecha inicio':
-        formatearFecha(mantenimiento.fechaInicio),
-
-      'Fecha finalización':
+      [textos.startDate]:
         formatearFecha(
-          mantenimiento.fechaFinalizacion
+          mantenimiento.fechaInicio,
+          language
+        ),
+
+      [textos.completionDate]:
+        formatearFecha(
+          mantenimiento.fechaFinalizacion,
+          language
         ),
     }));
 
@@ -177,19 +327,19 @@ export const exportarReporteExcel = async (
   XLSX.utils.book_append_sheet(
     workbook,
     resumenSheet,
-    'Resumen'
+    textos.summarySheet
   );
 
   XLSX.utils.book_append_sheet(
     workbook,
     equiposSheet,
-    'Equipos'
+    textos.equipmentSheet
   );
 
   XLSX.utils.book_append_sheet(
     workbook,
     mantenimientosSheet,
-    'Mantenimientos'
+    textos.maintenanceSheet
   );
 
   // 10. Generamos el archivo como Base64.
@@ -205,7 +355,7 @@ export const exportarReporteExcel = async (
 
   const uri =
     `${FileSystem.cacheDirectory}` +
-    `TechInventory_Reporte_${fechaArchivo}.xlsx`;
+    `TechInventory_${textos.fileName}_${fechaArchivo}.xlsx`;
 
   // 11. Escribimos temporalmente el archivo.
   await FileSystem.writeAsStringAsync(
@@ -221,17 +371,14 @@ export const exportarReporteExcel = async (
     await Sharing.isAvailableAsync();
 
   if (!disponible) {
-    throw new Error(
-      'El dispositivo no permite compartir archivos.'
-    );
+    throw new Error(textos.sharingUnavailable);
   }
 
   await Sharing.shareAsync(uri, {
     mimeType:
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 
-    dialogTitle:
-      'Exportar reporte TechInventory',
+    dialogTitle: textos.shareTitle,
 
     UTI:
       'org.openxmlformats.spreadsheetml.sheet',

@@ -17,10 +17,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { useTheme } from '../../context/ThemeContext';
+// Permite traducir la interfaz y adaptar fechas al idioma seleccionado.
+import { useLanguage } from '../../context/LanguageContext';
 
 import {
   obtenerReporteDesdeSupabase,
-  obtenerRangoReporte,
   ReportData,
   ReportPeriod,
 } from '../../services/reportesService';
@@ -28,6 +29,8 @@ import {
 import {
   exportarReporteExcel,
 } from '../../utils/reportExcel';
+
+
 
 // 2. Configuración de las gráficas de dona.
 const DONUT_SIZE = 140;
@@ -159,6 +162,8 @@ function LeyendaItem({
 export default function ReportsScreen() {
   const { colors } = useTheme();
 
+  const { language, t } = useLanguage();
+
   // 5. Por defecto mostramos información del mes actual.
   const [periodo, setPeriodo] =
     useState<ReportPeriod>('mes_actual');
@@ -199,9 +204,8 @@ export default function ReportsScreen() {
         error
       );
 
-      setError(
-        'No fue posible cargar los datos del reporte.'
-      );
+      setError('reportsLoadError');
+
     } finally {
       setCargando(false);
     }
@@ -253,31 +257,31 @@ export default function ReportsScreen() {
     totalEquipos === 0
       ? []
       : [
-          {
-            valor:
-              totalEnUso /
-              totalEquipos,
-            color: '#059669',
-          },
-          {
-            valor:
-              totalDisponibles /
-              totalEquipos,
-            color: '#3B82F6',
-          },
-          {
-            valor:
-              totalMantenimiento /
-              totalEquipos,
-            color: '#F59E0B',
-          },
-          {
-            valor:
-              totalBaja /
-              totalEquipos,
-            color: '#EF4444',
-          },
-        ];
+        {
+          valor:
+            totalEnUso /
+            totalEquipos,
+          color: '#059669',
+        },
+        {
+          valor:
+            totalDisponibles /
+            totalEquipos,
+          color: '#3B82F6',
+        },
+        {
+          valor:
+            totalMantenimiento /
+            totalEquipos,
+          color: '#F59E0B',
+        },
+        {
+          valor:
+            totalBaja /
+            totalEquipos,
+          color: '#EF4444',
+        },
+      ];
 
   // 10. Mantenimientos reales del período.
   const totalMantenimientos =
@@ -299,19 +303,19 @@ export default function ReportsScreen() {
     totalMantenimientos === 0
       ? []
       : [
-          {
-            valor:
-              totalPreventivo /
-              totalMantenimientos,
-            color: '#3B82F6',
-          },
-          {
-            valor:
-              totalCorrectivo /
-              totalMantenimientos,
-            color: '#8B5CF6',
-          },
-        ];
+        {
+          valor:
+            totalPreventivo /
+            totalMantenimientos,
+          color: '#3B82F6',
+        },
+        {
+          valor:
+            totalCorrectivo /
+            totalMantenimientos,
+          color: '#8B5CF6',
+        },
+      ];
 
   // 11. Equipos agrupados por sucursal.
   const equiposPorSucursal =
@@ -344,8 +348,15 @@ export default function ReportsScreen() {
       1
     );
 
-  const rangoActual =
-    obtenerRangoReporte(periodo);
+  // Traduce el período seleccionado sin modificar el valor interno usado por Supabase.
+  const etiquetaPeriodo =
+    periodo === 'mes_actual'
+      ? t('reportsPeriodCurrentMonth')
+      : periodo === 'ultimos_30'
+        ? t('reportsPeriodLast30Days')
+        : periodo === 'anio_actual'
+          ? t('reportsPeriodCurrentYear')
+          : t('reportsPeriodAllHistory');
 
   // 12. Exporta exactamente el mismo período que
   // actualmente está visualizando el usuario.
@@ -355,8 +366,8 @@ export default function ReportsScreen() {
       reportData.mantenimientos.length === 0
     ) {
       Alert.alert(
-        'Sin información',
-        'No existen datos para exportar en el período seleccionado.'
+        t('reportsNoExportDataTitle'),
+        t('reportsNoExportDataMessage')
       );
 
       return;
@@ -367,7 +378,8 @@ export default function ReportsScreen() {
 
       await exportarReporteExcel(
         reportData,
-        periodo
+        periodo,
+        language
       );
     } catch (error) {
       console.log(
@@ -376,8 +388,8 @@ export default function ReportsScreen() {
       );
 
       Alert.alert(
-        'Error',
-        'No fue posible generar el archivo Excel.'
+        t('reportsExportErrorTitle'),
+        t('reportsExportErrorMessage')
       );
     } finally {
       setExportando(false);
@@ -421,7 +433,7 @@ export default function ReportsScreen() {
               { color: colors.primary },
             ]}
           >
-            Reportes
+            {t('reportsTitle')}
           </Text>
         </View>
 
@@ -452,7 +464,7 @@ export default function ReportsScreen() {
               { color: colors.text },
             ]}
           >
-            {rangoActual.etiqueta}
+            {etiquetaPeriodo}
           </Text>
 
           <Ionicons
@@ -478,7 +490,7 @@ export default function ReportsScreen() {
                   colors.textSecondary,
               }}
             >
-              Actualizando reporte...
+              {t('reportsUpdating')}
             </Text>
           </View>
         )}
@@ -490,7 +502,7 @@ export default function ReportsScreen() {
               { color: '#B91C1C' },
             ]}
           >
-            {error}
+            {error ? t(error) : null}
           </Text>
         )}
 
@@ -520,7 +532,7 @@ export default function ReportsScreen() {
                 { color: '#1E3A8A' },
               ]}
             >
-              Equipos registrados
+              {t('reportsRegisteredEquipment')}
             </Text>
           </View>
 
@@ -548,7 +560,7 @@ export default function ReportsScreen() {
                 { color: '#059669' },
               ]}
             >
-              En uso
+              {t('reportsInUse')}
             </Text>
           </View>
 
@@ -576,7 +588,7 @@ export default function ReportsScreen() {
                 { color: '#B45309' },
               ]}
             >
-              Mantenimiento
+              {t('reportsMaintenance')}
             </Text>
           </View>
 
@@ -604,7 +616,7 @@ export default function ReportsScreen() {
                 { color: '#B91C1C' },
               ]}
             >
-              Dados de baja
+              {t('reportsDecommissioned')}
             </Text>
           </View>
         </View>
@@ -616,7 +628,7 @@ export default function ReportsScreen() {
             { color: colors.text },
           ]}
         >
-          Equipos por estado
+          {t('reportsEquipmentByStatus')}
         </Text>
 
         <View
@@ -640,8 +652,7 @@ export default function ReportsScreen() {
                 },
               ]}
             >
-              Sin equipos registrados
-              en este período.
+              {t('reportsNoEquipment')}
             </Text>
           ) : (
             <View style={styles.chartRow}>
@@ -664,25 +675,25 @@ export default function ReportsScreen() {
               >
                 <LeyendaItem
                   color="#059669"
-                  texto={`En uso (${totalEnUso})`}
+                  texto={`${t('reportsInUse')} (${totalEnUso})`}
                   textColor={colors.text}
                 />
 
                 <LeyendaItem
                   color="#3B82F6"
-                  texto={`Disponibles (${totalDisponibles})`}
+                  texto={`${t('reportsAvailable')} (${totalDisponibles})`}
                   textColor={colors.text}
                 />
 
                 <LeyendaItem
                   color="#F59E0B"
-                  texto={`Mantenimiento (${totalMantenimiento})`}
+                  texto={`${t('reportsMaintenance')} (${totalMantenimiento})`}
                   textColor={colors.text}
                 />
 
                 <LeyendaItem
                   color="#EF4444"
-                  texto={`Baja (${totalBaja})`}
+                  texto={`${t('reportsInactive')} (${totalBaja})`}
                   textColor={colors.text}
                 />
               </View>
@@ -697,7 +708,7 @@ export default function ReportsScreen() {
             { color: colors.text },
           ]}
         >
-          Mantenimientos por tipo
+          {t('reportsMaintenanceByType')}
         </Text>
 
         <View
@@ -712,7 +723,7 @@ export default function ReportsScreen() {
           ]}
         >
           {totalMantenimientos ===
-          0 ? (
+            0 ? (
             <Text
               style={[
                 styles.emptyText,
@@ -722,9 +733,7 @@ export default function ReportsScreen() {
                 },
               ]}
             >
-              Sin mantenimientos
-              registrados en este
-              período.
+              {t('reportsNoMaintenance')}
             </Text>
           ) : (
             <View style={styles.chartRow}>
@@ -747,13 +756,13 @@ export default function ReportsScreen() {
               >
                 <LeyendaItem
                   color="#3B82F6"
-                  texto={`Preventivo (${totalPreventivo})`}
+                  texto={`${t('reportsPreventive')} (${totalPreventivo})`}
                   textColor={colors.text}
                 />
 
                 <LeyendaItem
                   color="#8B5CF6"
-                  texto={`Correctivo (${totalCorrectivo})`}
+                  texto={`${t('reportsCorrective')} (${totalCorrectivo})`}
                   textColor={colors.text}
                 />
               </View>
@@ -768,7 +777,7 @@ export default function ReportsScreen() {
             { color: colors.text },
           ]}
         >
-          Equipos por sucursal
+          {t('reportsEquipmentByBranch')}
         </Text>
 
         <View
@@ -783,7 +792,7 @@ export default function ReportsScreen() {
           ]}
         >
           {listaSucursales.length ===
-          0 ? (
+            0 ? (
             <Text
               style={[
                 styles.emptyText,
@@ -793,8 +802,7 @@ export default function ReportsScreen() {
                 },
               ]}
             >
-              Sin equipos registrados
-              en este período.
+              {t('reportsNoEquipment')}
             </Text>
           ) : (
             listaSucursales.map(
@@ -813,7 +821,9 @@ export default function ReportsScreen() {
                     ]}
                     numberOfLines={1}
                   >
-                    {item.sucursal}
+                    {item.sucursal === 'No identificada'
+                      ? t('reportsUnidentified')
+                      : item.sucursal}
                   </Text>
 
                   <View
@@ -862,7 +872,7 @@ export default function ReportsScreen() {
                 colors.primary,
               opacity:
                 exportando ||
-                cargando
+                  cargando
                   ? 0.6
                   : 1,
             },
@@ -888,8 +898,8 @@ export default function ReportsScreen() {
             }
           >
             {exportando
-              ? 'Generando Excel...'
-              : 'Exportar a Excel'}
+              ? t('reportsExportingExcel')
+              : t('reportsExportExcel')}
           </Text>
         </TouchableOpacity>
 
@@ -932,7 +942,7 @@ export default function ReportsScreen() {
                   { color: colors.text },
                 ]}
               >
-                Período del reporte
+                {t('reportsPeriodTitle')}
               </Text>
 
               <TouchableOpacity
@@ -954,26 +964,20 @@ export default function ReportsScreen() {
 
             {[
               {
-                value:
-                  'mes_actual' as ReportPeriod,
-                label: 'Este mes',
+                value: 'mes_actual' as ReportPeriod,
+                label: t('reportsPeriodCurrentMonth'),
               },
               {
-                value:
-                  'ultimos_30' as ReportPeriod,
-                label:
-                  'Últimos 30 días',
+                value: 'ultimos_30' as ReportPeriod,
+                label: t('reportsPeriodLast30Days'),
               },
               {
-                value:
-                  'anio_actual' as ReportPeriod,
-                label: 'Este año',
+                value: 'anio_actual' as ReportPeriod,
+                label: t('reportsPeriodCurrentYear'),
               },
               {
-                value:
-                  'todo' as ReportPeriod,
-                label:
-                  'Todo el historial',
+                value: 'todo' as ReportPeriod,
+                label: t('reportsPeriodAllHistory'),
               },
             ].map((opcion) => (
               <TouchableOpacity
@@ -1005,14 +1009,14 @@ export default function ReportsScreen() {
 
                 {periodo ===
                   opcion.value && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={21}
-                    color={
-                      colors.primary
-                    }
-                  />
-                )}
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={21}
+                      color={
+                        colors.primary
+                      }
+                    />
+                  )}
               </TouchableOpacity>
             ))}
           </View>

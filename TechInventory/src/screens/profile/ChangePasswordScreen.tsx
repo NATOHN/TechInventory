@@ -8,12 +8,15 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { supabase } from '../../lib/supabase';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
@@ -27,6 +30,7 @@ type Props = NativeStackScreenProps<
 
 export default function ChangePasswordScreen({ navigation }: Props) {
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   // 3. Las contraseñas permanecen únicamente en el estado local de esta pantalla.
   // Nunca se almacenan en Redux ni AsyncStorage.
@@ -41,32 +45,32 @@ export default function ChangePasswordScreen({ navigation }: Props) {
 
     if (!passwordActual || !nuevaPassword || !confirmarPassword) {
       Alert.alert(
-        'Campos requeridos',
-        'Completa la contraseña actual, la nueva contraseña y su confirmación.'
+        t('changePasswordRequiredTitle'),
+        t('changePasswordRequiredMessage')
       );
       return;
     }
 
     if (nuevaPassword.length < 8) {
       Alert.alert(
-        'Contraseña muy corta',
-        'La nueva contraseña debe contener al menos 8 caracteres.'
+        t('changePasswordShortTitle'),
+        t('changePasswordShortMessage')
       );
       return;
     }
 
     if (nuevaPassword !== confirmarPassword) {
       Alert.alert(
-        'Las contraseñas no coinciden',
-        'La confirmación debe ser igual a la nueva contraseña.'
+        t('changePasswordMismatchTitle'),
+        t('changePasswordMismatchMessage')
       );
       return;
     }
 
     if (passwordActual === nuevaPassword) {
       Alert.alert(
-        'Contraseña sin cambios',
-        'La nueva contraseña debe ser diferente de la contraseña actual.'
+        t('changePasswordSameTitle'),
+        t('changePasswordSameMessage')
       );
       return;
     }
@@ -87,8 +91,8 @@ export default function ChangePasswordScreen({ navigation }: Props) {
         );
 
         Alert.alert(
-          'Sesión no disponible',
-          'No fue posible verificar tu sesión actual.'
+          t('changePasswordSessionTitle'),
+          t('changePasswordSessionMessage')
         );
         return;
       }
@@ -102,8 +106,8 @@ export default function ChangePasswordScreen({ navigation }: Props) {
 
       if (loginError || loginData.user?.id !== user.id) {
         Alert.alert(
-          'Contraseña incorrecta',
-          'La contraseña actual que ingresaste no es correcta.'
+          t('changePasswordIncorrectTitle'),
+          t('changePasswordIncorrectMessage')
         );
         return;
       }
@@ -121,8 +125,8 @@ export default function ChangePasswordScreen({ navigation }: Props) {
         );
 
         Alert.alert(
-          'No se pudo cambiar la contraseña',
-          updateError.message
+          t('changePasswordErrorTitle'),
+          t('changePasswordErrorMessage')
         );
         return;
       }
@@ -133,11 +137,11 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       setConfirmarPassword('');
 
       Alert.alert(
-        'Contraseña actualizada',
-        'Tu contraseña fue cambiada correctamente.',
+        t('changePasswordSuccessTitle'),
+        t('changePasswordSuccessMessage'),
         [
           {
-            text: 'Aceptar',
+            text: t('commonAccept'),
             onPress: () => navigation.goBack(),
           },
         ]
@@ -149,8 +153,8 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       );
 
       Alert.alert(
-        'Error',
-        'No fue posible cambiar la contraseña en este momento.'
+        t('changePasswordErrorTitle'),
+        t('changePasswordErrorMessage')
       );
     } finally {
       setGuardando(false);
@@ -165,11 +169,16 @@ export default function ChangePasswordScreen({ navigation }: Props) {
         { backgroundColor: colors.background },
       ]}
     >
-      <ScrollView
-        style={{ backgroundColor: colors.background }}
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-      >
+      <KeyboardAvoidingView
+  style={styles.keyboardView}
+  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+>
+ <ScrollView
+  style={{ backgroundColor: colors.background }}
+  contentContainerStyle={styles.container}
+  keyboardShouldPersistTaps="handled"
+  keyboardDismissMode="on-drag"
+>
         {/* 9. Encabezado. */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -190,7 +199,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
                 { color: colors.primary },
               ]}
             >
-              Cambiar contraseña
+              {t('changePasswordTitle')}
             </Text>
 
             <Text
@@ -199,7 +208,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
                 { color: colors.textSecondary },
               ]}
             >
-              Actualiza la contraseña de tu cuenta
+              {t('changePasswordSubtitle')}
             </Text>
           </View>
         </View>
@@ -226,40 +235,40 @@ export default function ChangePasswordScreen({ navigation }: Props) {
               { color: colors.textSecondary },
             ]}
           >
-            Por seguridad debes confirmar tu contraseña actual antes de establecer una nueva.
+            {t('changePasswordSecurityMessage')}
           </Text>
         </View>
 
         {/* 11. Formulario. */}
         <Text style={[styles.label, { color: colors.text }]}>
-          Contraseña actual
+          {t('changePasswordCurrentLabel')}
         </Text>
 
         <CustomInput
           type="password"
-          placeholder="Ingresa tu contraseña actual"
+          placeholder={t('changePasswordCurrentPlaceholder')}
           value={passwordActual}
           onChange={setPasswordActual}
         />
 
         <Text style={[styles.label, { color: colors.text }]}>
-          Nueva contraseña
+          {t('changePasswordNewLabel')}
         </Text>
 
         <CustomInput
           type="password"
-          placeholder="Mínimo 8 caracteres"
+          placeholder={t('changePasswordNewPlaceholder')}
           value={nuevaPassword}
           onChange={setNuevaPassword}
         />
 
         <Text style={[styles.label, { color: colors.text }]}>
-          Confirmar nueva contraseña
+          {t('changePasswordConfirmLabel')}
         </Text>
 
         <CustomInput
           type="password"
-          placeholder="Repite la nueva contraseña"
+          placeholder={t('changePasswordConfirmPlaceholder')}
           value={confirmarPassword}
           onChange={setConfirmarPassword}
         />
@@ -272,18 +281,19 @@ export default function ChangePasswordScreen({ navigation }: Props) {
             />
 
             <Text style={{ color: colors.textSecondary }}>
-              Actualizando contraseña...
+              {t('changePasswordUpdating')}
             </Text>
           </View>
         ) : (
           <CustomButton
-            title="Cambiar contraseña"
+            title={t('changePasswordButton')}
             onPress={handleCambiarPassword}
           />
         )}
 
         <View style={{ height: 30 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -293,7 +303,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 30,
+    paddingBottom: 120,
   },
 
   header: {
@@ -342,4 +352,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
+
+  keyboardView: {
+  flex: 1,
+},
 });

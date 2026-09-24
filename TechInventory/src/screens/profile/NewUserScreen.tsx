@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { cargarUsuariosDesdeSupabase, UserRole } from '../../redux/usersSlice';
 
@@ -25,6 +26,7 @@ import CustomButton from '../../components/CustomButton';
 export default function NewUserScreen({ navigation }: any) {
   // 2. Obtenemos colores y dispatch.
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const dispatch = useAppDispatch();
 
   // 3. Los empleados y usuarios ya provienen de Supabase mediante Redux.
@@ -57,8 +59,8 @@ export default function NewUserScreen({ navigation }: any) {
   const validarCampos = () => {
     if (!empleadoSeleccionado) {
       Alert.alert(
-        'Empleado requerido',
-        'Selecciona el empleado al que pertenecerá esta cuenta.'
+        t('newUserEmployeeRequiredTitle'),
+        t('newUserEmployeeRequiredMessage')
       );
       return false;
     }
@@ -67,8 +69,8 @@ export default function NewUserScreen({ navigation }: any) {
 
     if (!correoNormalizado.includes('@')) {
       Alert.alert(
-        'Correo inválido',
-        'Ingresa un correo electrónico válido.'
+        t('newUserInvalidEmailTitle'),
+        t('newUserInvalidEmailMessage')
       );
       return false;
     }
@@ -79,24 +81,24 @@ export default function NewUserScreen({ navigation }: any) {
       )
     ) {
       Alert.alert(
-        'Correo existente',
-        'Ya existe una cuenta registrada con ese correo.'
+        t('newUserExistingEmailTitle'),
+        t('newUserExistingEmailMessage')
       );
       return false;
     }
 
     if (password.length < 8) {
       Alert.alert(
-        'Contraseña inválida',
-        'La contraseña temporal debe contener al menos 8 caracteres.'
+        t('newUserInvalidPasswordTitle'),
+        t('newUserInvalidPasswordMessage')
       );
       return false;
     }
 
     if (password !== confirmarPassword) {
       Alert.alert(
-        'Contraseñas diferentes',
-        'La contraseña y su confirmación deben coincidir.'
+        t('newUserMismatchTitle'),
+        t('newUserMismatchMessage')
       );
       return false;
     }
@@ -123,11 +125,11 @@ export default function NewUserScreen({ navigation }: any) {
       await dispatch(cargarUsuariosDesdeSupabase()).unwrap();
 
       Alert.alert(
-        'Usuario creado',
-        `La cuenta de ${empleadoSeleccionado.nombre} fue creada correctamente.`,
+        t('newUserCreatedTitle'),
+        `${t('newUserCreatedPrefix')} ${empleadoSeleccionado.nombre} ${t('newUserCreatedSuffix')}`,
         [
           {
-            text: 'Aceptar',
+            text: t('commonAccept'),
             onPress: () => navigation.goBack(),
           },
         ]
@@ -138,9 +140,9 @@ export default function NewUserScreen({ navigation }: any) {
       const mensaje =
         error instanceof Error
           ? error.message
-          : 'No fue posible crear la cuenta.';
+          : t('newUserErrorMessage');
 
-      Alert.alert('No se pudo crear el usuario', mensaje);
+      Alert.alert(t('newUserErrorTitle'), mensaje);
     } finally {
       setGuardando(false);
     }
@@ -170,13 +172,13 @@ export default function NewUserScreen({ navigation }: any) {
           </TouchableOpacity>
 
           <Text style={[styles.title, { color: colors.primary }]}>
-            Registrar usuario
+            {t('newUserTitle')}
           </Text>
         </View>
 
         {/* 10. Seleccionamos el empleado real al que pertenecerá la cuenta. */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Empleado
+          {t('newUserEmployeeLabel')}
         </Text>
 
         <TouchableOpacity
@@ -198,7 +200,7 @@ export default function NewUserScreen({ navigation }: any) {
               flex: 1,
             }}
           >
-            {empleadoSeleccionado?.nombre ?? 'Seleccionar empleado'}
+            {empleadoSeleccionado?.nombre ?? t('newUserSelectEmployee')}
           </Text>
 
           <Ionicons
@@ -210,43 +212,43 @@ export default function NewUserScreen({ navigation }: any) {
 
         {/* 11. Este correo será utilizado posteriormente para iniciar sesión. */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Correo electrónico
+          {t('newUserEmailLabel')}
         </Text>
 
         <CustomInput
           type="email"
-          placeholder="correo@empresa.com"
+          placeholder={t('emailPlaceholder')}
           value={correo}
           onChange={setCorreo}
         />
 
         {/* 12. Contraseña temporal administrada exclusivamente por Supabase Auth. */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Contraseña temporal
+          {t('newUserTemporaryPasswordLabel')}
         </Text>
 
         <CustomInput
           type="password"
-          placeholder="Mínimo 8 caracteres"
+          placeholder={t('newUserPasswordPlaceholder')}
           value={password}
           onChange={setPassword}
         />
 
         {/* 13. Evitamos errores al escribir la contraseña inicial. */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Confirmar contraseña
+          {t('newUserConfirmPasswordLabel')}
         </Text>
 
         <CustomInput
           type="password"
-          placeholder="Repetir contraseña"
+          placeholder={t('newUserRepeatPasswordPlaceholder')}
           value={confirmarPassword}
           onChange={setConfirmarPassword}
         />
 
         {/* 14. El administrador define los permisos de la nueva cuenta. */}
         <Text style={[styles.sectionLabel, { color: colors.text }]}>
-          Tipo de usuario
+          {t('newUserTypeLabel')}
         </Text>
 
         <View style={styles.toggleRow}>
@@ -270,7 +272,7 @@ export default function NewUserScreen({ navigation }: any) {
                   fontWeight: '600',
                 }}
               >
-                {op === 'tecnico' ? 'Técnico' : 'Administrador'}
+                {op === 'tecnico' ? t('newUserTechnician') : t('newUserAdministrator')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -285,12 +287,12 @@ export default function NewUserScreen({ navigation }: any) {
             />
 
             <Text style={{ color: colors.textSecondary }}>
-              Creando cuenta...
+              {t('newUserCreating')}
             </Text>
           </View>
         ) : (
           <CustomButton
-            title="Crear usuario"
+            title={t('newUserCreateButton')}
             onPress={handleGuardar}
           />
         )}
@@ -322,7 +324,7 @@ export default function NewUserScreen({ navigation }: any) {
                   { color: colors.text },
                 ]}
               >
-                Seleccionar empleado
+                {t('newUserSelectEmployeeTitle')}
               </Text>
 
               <TouchableOpacity
@@ -371,7 +373,7 @@ export default function NewUserScreen({ navigation }: any) {
                     { color: colors.textSecondary },
                   ]}
                 >
-                  No hay empleados disponibles para crear una cuenta.
+                  {t('newUserNoEmployees')}
                 </Text>
               )}
             </ScrollView>

@@ -24,21 +24,26 @@ export default function ProfileScreen({ navigation }: any) {
   );
 
   // 5. Texto del rol mostrado bajo el nombre, segun el rol real del usuario actual.
-  const rolTexto = currentUser?.rol === 'administrador' ? 'Administrador' : 'Técnico de mantenimiento';
-// 6. Cerramos la sesión real de Supabase.
-// StackNavigator detectará SIGNED_OUT y mostrará Login automáticamente.
-const handleLogout = async () => {
-  const { error } = await supabase.auth.signOut();
+  // El rol visible cambia según el idioma seleccionado.
+  const rolTexto =
+    currentUser?.rol === 'administrador'
+      ? t('administratorRole')
+      : t('technicianRole');
 
-  if (error) {
-    console.log('Error al cerrar sesión:', error.message);
+  // 6. Cerramos la sesión real de Supabase.
+  // StackNavigator detectará SIGNED_OUT y mostrará Login automáticamente.
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
 
-    Alert.alert(
-      'Error',
-      'No fue posible cerrar la sesión.'
-    );
-  }
-};
+    if (error) {
+      console.log('Error al cerrar sesión:', error.message);
+
+      Alert.alert(
+        t('profileLogoutErrorTitle'),
+        t('profileLogoutErrorMessage')
+      );
+    }
+  };
 
   return (
     // 7. SafeAreaView evita que el contenido quede pegado a los bordes del dispositivo.
@@ -61,7 +66,7 @@ const handleLogout = async () => {
           onPress={() => navigation.navigate('EditProfileScreen')}
         >
           <Ionicons name="person-outline" size={22} color={colors.primary} />
-          <Text style={[styles.configText, { color: colors.text }]}>Mi Perfil</Text>
+          <Text style={[styles.configText, { color: colors.text }]}> {t('profile')}</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
@@ -71,7 +76,7 @@ const handleLogout = async () => {
           onPress={() => navigation.navigate('ConfigurationScreen')}
         >
           <Ionicons name="settings-outline" size={22} color={colors.primary} />
-          <Text style={[styles.configText, { color: colors.text }]}>Configuración</Text>
+          <Text style={[styles.configText, { color: colors.text }]}>{t('profileSettings')}</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 

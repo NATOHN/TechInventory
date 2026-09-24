@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 // Redux permitirá registrar la sucursal en Supabase y actualizar el catálogo local.
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
 import { crearSucursalEnSupabase } from '../../redux/sucursalesSlice';
@@ -32,6 +33,7 @@ type Props = NativeStackScreenProps<ProfileStackParamList, 'LocationsScreen'>;
 export default function LocationsScreen({ navigation }: Props) {
     // 3. Obtenemos los colores del tema actual.
     const { colors } = useTheme();
+    const { t } = useLanguage();
 
     // 4. Redux se encargará de conectar esta pantalla con Supabase.
     const dispatch = useAppDispatch();
@@ -72,8 +74,8 @@ export default function LocationsScreen({ navigation }: Props) {
         // volvemos a comprobar el rol antes de permitir el registro.
         if (!esAdministrador) {
             Alert.alert(
-                'Acceso restringido',
-                'Solo un administrador puede registrar nuevas sucursales.'
+                t('locationsRestrictedTitle'),
+                t('locationsBranchRestrictedMessage')
             );
             return;
         }
@@ -85,8 +87,8 @@ export default function LocationsScreen({ navigation }: Props) {
 
         if (nombreLimpio.length < 2) {
             Alert.alert(
-                'Nombre requerido',
-                'Ingresa un nombre válido para la sucursal.'
+                t('locationsNameRequiredTitle'),
+                t('locationsBranchNameMessage')
             );
             return;
         }
@@ -99,8 +101,8 @@ export default function LocationsScreen({ navigation }: Props) {
 
         if (sucursalExistente) {
             Alert.alert(
-                'Sucursal existente',
-                'Ya existe una sucursal registrada con ese nombre.'
+                t('locationsBranchExistingTitle'),
+                t('locationsBranchExistingMessage')
             );
             return;
         }
@@ -117,8 +119,8 @@ export default function LocationsScreen({ navigation }: Props) {
             setNombreSucursal('');
 
             Alert.alert(
-                'Sucursal creada',
-                `${nuevaSucursal.nombre} fue registrada correctamente.`
+                t('locationsBranchCreatedTitle'),
+                `${nuevaSucursal.nombre} ${t('locationsRegisteredSuffix')}`
             );
         } catch (error) {
             console.log('Error al crear sucursal:', error);
@@ -128,9 +130,9 @@ export default function LocationsScreen({ navigation }: Props) {
                     ? error
                     : error instanceof Error
                         ? error.message
-                        : 'No fue posible registrar la sucursal.';
+                        : t('locationsBranchErrorMessage');
 
-            Alert.alert('No se pudo crear la sucursal', mensaje);
+            Alert.alert(t('locationsBranchErrorTitle'), mensaje);
         } finally {
             setGuardando(false);
         }
@@ -141,8 +143,8 @@ export default function LocationsScreen({ navigation }: Props) {
         // Mantenemos una segunda protección en la interfaz además de RLS.
         if (!esAdministrador) {
             Alert.alert(
-                'Acceso restringido',
-                'Solo un administrador puede registrar departamentos.'
+                t('locationsRestrictedTitle'),
+                t('locationsDepartmentRestrictedMessage')
             );
             return;
         }
@@ -153,16 +155,16 @@ export default function LocationsScreen({ navigation }: Props) {
 
         if (!sucursalDepartamentoId) {
             Alert.alert(
-                'Sucursal requerida',
-                'Selecciona la sucursal a la que pertenece el departamento.'
+                t('locationsDepartmentRequiredTitle'),
+                t('locationsDepartmentRequiredMessage')
             );
             return;
         }
 
         if (nombreLimpio.length < 2) {
             Alert.alert(
-                'Nombre requerido',
-                'Ingresa un nombre válido para el departamento o zona.'
+                t('locationsNameRequiredTitle'),
+                t('locationsDepartmentNameMessage')
             );
             return;
         }
@@ -177,8 +179,8 @@ export default function LocationsScreen({ navigation }: Props) {
 
         if (departamentoExistente) {
             Alert.alert(
-                'Departamento existente',
-                'Esta sucursal ya tiene un departamento o zona con ese nombre.'
+                t('locationsDepartmentExistingTitle'),
+                t('locationsDepartmentExistingMessage')
             );
             return;
         }
@@ -198,8 +200,8 @@ export default function LocationsScreen({ navigation }: Props) {
             setSucursalDepartamentoId(null);
 
             Alert.alert(
-                'Departamento creado',
-                `${nuevoDepartamento.nombre} fue registrado correctamente.`
+                t('locationsDepartmentCreatedTitle'),
+                `${nuevoDepartamento.nombre} ${t('locationsRegisteredSuffix')}`
             );
         } catch (error) {
             console.log('Error al crear departamento:', error);
@@ -209,9 +211,9 @@ export default function LocationsScreen({ navigation }: Props) {
                     ? error
                     : error instanceof Error
                         ? error.message
-                        : 'No fue posible registrar el departamento.';
+                        : t('locationsDepartmentErrorMessage');
 
-            Alert.alert('No se pudo crear el departamento', mensaje);
+            Alert.alert(t('locationsDepartmentErrorTitle'), mensaje);
         } finally {
             setGuardandoDepartamento(false);
         }
@@ -232,11 +234,11 @@ export default function LocationsScreen({ navigation }: Props) {
 
                     <View>
                         <Text style={[styles.title, { color: colors.primary }]}>
-                            Sucursales
+                            {t('locationsTitle')}
                         </Text>
 
                         <Text style={[styles.description, { color: colors.textSecondary }]}>
-                            Administración de ubicaciones
+                            {t('locationsSubtitle')}
                         </Text>
                     </View>
                 </View>
@@ -268,7 +270,7 @@ export default function LocationsScreen({ navigation }: Props) {
 
                             <View style={styles.sectionHeaderText}>
                                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                    Nueva sucursal
+                                    {t('locationsNewBranchTitle')}
                                 </Text>
 
                                 <Text
@@ -277,18 +279,18 @@ export default function LocationsScreen({ navigation }: Props) {
                                         { color: colors.textSecondary },
                                     ]}
                                 >
-                                    Registra una nueva ubicación de la empresa.
+                                    {t('locationsNewBranchDescription')}
                                 </Text>
                             </View>
                         </View>
 
                         <Text style={[styles.label, { color: colors.text }]}>
-                            Nombre de la sucursal
+                            {t('locationsBranchNameLabel')}
                         </Text>
 
                         <CustomInput
                             type="text"
-                            placeholder="Ej. Sucursal San Pedro Sula"
+                            placeholder={t('locationsBranchPlaceholder')}
                             value={nombreSucursal}
                             onChange={setNombreSucursal}
                         />
@@ -299,12 +301,12 @@ export default function LocationsScreen({ navigation }: Props) {
                                 <ActivityIndicator size="small" color={colors.primary} />
 
                                 <Text style={{ color: colors.textSecondary }}>
-                                    Registrando sucursal...
+                                    {t('locationsRegisteringBranch')}
                                 </Text>
                             </View>
                         ) : (
                             <CustomButton
-                                title="Crear sucursal"
+                                title={t('locationsCreateBranchButton')}
                                 onPress={handleCrearSucursal}
                             />
                         )}
@@ -314,7 +316,7 @@ export default function LocationsScreen({ navigation }: Props) {
                 {/* El catálogo proviene directamente de Redux y se actualiza al crear. */}
                 <View style={styles.listSection}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Sucursales registradas
+                        {t('locationsRegisteredBranches')}
                     </Text>
 
                     <Text
@@ -323,7 +325,7 @@ export default function LocationsScreen({ navigation }: Props) {
                             { color: colors.textSecondary },
                         ]}
                     >
-                        {sucursales.length} {sucursales.length === 1 ? 'sucursal' : 'sucursales'}
+                        {sucursales.length} {sucursales.length === 1 ? t('locationsBranchSingular') : t('locationsBranchPlural')}
                     </Text>
 
                     {sucursales.length === 0 ? (
@@ -348,7 +350,7 @@ export default function LocationsScreen({ navigation }: Props) {
                                     { color: colors.textSecondary },
                                 ]}
                             >
-                                No hay sucursales registradas.
+                                {t('locationsNoBranches')}
                             </Text>
                         </View>
                     ) : (
@@ -423,7 +425,7 @@ export default function LocationsScreen({ navigation }: Props) {
 
                             <View style={styles.sectionHeaderText}>
                                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                                    Nuevo departamento o zona
+                                    {t('locationsNewDepartmentTitle')}
                                 </Text>
 
                                 <Text
@@ -432,13 +434,13 @@ export default function LocationsScreen({ navigation }: Props) {
                                         { color: colors.textSecondary },
                                     ]}
                                 >
-                                    Selecciona primero la sucursal a la que pertenece.
+                                    {t('locationsNewDepartmentDescription')}
                                 </Text>
                             </View>
                         </View>
 
                         <Text style={[styles.label, { color: colors.text }]}>
-                            Sucursal
+                            {t('locationsBranchLabel')}
                         </Text>
 
                         {/* Selector de sucursal basado en el catálogo real de Redux. */}
@@ -460,7 +462,7 @@ export default function LocationsScreen({ navigation }: Props) {
                                         : colors.textSecondary,
                                 }}
                             >
-                                {sucursalDepartamento?.nombre ?? 'Seleccionar sucursal'}
+                                {sucursalDepartamento?.nombre ?? t('locationsSelectBranch')}
                             </Text>
 
                             <Ionicons
@@ -471,12 +473,12 @@ export default function LocationsScreen({ navigation }: Props) {
                         </TouchableOpacity>
 
                         <Text style={[styles.label, { color: colors.text }]}>
-                            Departamento o zona
+                            {t('locationsDepartmentLabel')}
                         </Text>
 
                         <CustomInput
                             type="text"
-                            placeholder="Ej. Contabilidad"
+                            placeholder={t('locationsDepartmentPlaceholder')}
                             value={nombreDepartamento}
                             onChange={setNombreDepartamento}
                         />
@@ -486,12 +488,12 @@ export default function LocationsScreen({ navigation }: Props) {
                                 <ActivityIndicator size="small" color={colors.primary} />
 
                                 <Text style={{ color: colors.textSecondary }}>
-                                    Registrando departamento...
+                                    {t('locationsRegisteringDepartment')}
                                 </Text>
                             </View>
                         ) : (
                             <CustomButton
-                                title="Crear departamento"
+                                title={t('locationsCreateDepartmentButton')}
                                 onPress={handleCrearDepartamento}
                             />
                         )}
@@ -501,7 +503,7 @@ export default function LocationsScreen({ navigation }: Props) {
                 {/* Listado actualizado automáticamente desde Redux. */}
                 <View style={[styles.listSection, { marginTop: 8 }]}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                        Departamentos y zonas registradas
+                        {t('locationsRegisteredDepartments')}
                     </Text>
 
                     <Text
@@ -511,7 +513,7 @@ export default function LocationsScreen({ navigation }: Props) {
                         ]}
                     >
                         {departamentos.length}{' '}
-                        {departamentos.length === 1 ? 'departamento' : 'departamentos'}
+                        {departamentos.length === 1 ? t('locationsDepartmentSingular') : t('locationsDepartmentPlural')}
                     </Text>
 
                     {departamentos.length === 0 ? (
@@ -536,7 +538,7 @@ export default function LocationsScreen({ navigation }: Props) {
                                     { color: colors.textSecondary },
                                 ]}
                             >
-                                No hay departamentos registrados.
+                                {t('locationsNoDepartments')}
                             </Text>
                         </View>
                     ) : (
@@ -586,7 +588,7 @@ export default function LocationsScreen({ navigation }: Props) {
                                                 { color: colors.textSecondary },
                                             ]}
                                         >
-                                            {sucursalRelacionada?.nombre ?? 'Sucursal no disponible'}
+                                            {sucursalRelacionada?.nombre ?? t('locationsBranchUnavailable')}
                                         </Text>
                                     </View>
 
@@ -620,7 +622,7 @@ export default function LocationsScreen({ navigation }: Props) {
                     >
                         <View style={styles.modalHeader}>
                             <Text style={[styles.modalTitle, { color: colors.text }]}>
-                                Seleccionar sucursal
+                                {t('locationsSelectBranchTitle')}
                             </Text>
 
                             <TouchableOpacity
@@ -641,7 +643,7 @@ export default function LocationsScreen({ navigation }: Props) {
                                     { color: colors.textSecondary },
                                 ]}
                             >
-                                Primero debes registrar una sucursal.
+                                {t('locationsRegisterBranchFirst')}
                             </Text>
                         ) : (
                             sucursales.map((sucursal) => (

@@ -43,6 +43,12 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     const departamentosSupabase = useAppSelector((state) => state.departamentos.departamentos);
     const empleadosSupabase = useAppSelector((state) => state.empleados.empleados);
 
+    // Identificamos al usuario que actualmente está utilizando TechInventory.
+// Este usuario quedará registrado como la persona que creó el equipo.
+const currentUser = useAppSelector((state) =>
+    state.users.users.find((user) => user.id === state.users.currentUserId)
+);
+
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
     const [modelo, setModelo] = useState("");
@@ -199,6 +205,11 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
 
             // Generamos automáticamente el código del equipo.
             codigo: generarCodigoEquipo(),
+            
+            // Conservamos evidencia del usuario que realizó originalmente
+// el registro del equipo dentro de TechInventory.
+registradoPorId: currentUser?.id,
+registradoPorNombre: currentUser?.nombreCompleto,
 
             // Guardamos los datos ingresados por el usuario.
             marca: marca,

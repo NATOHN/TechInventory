@@ -13,14 +13,17 @@ import { marcarTodasLeidas } from '../../redux/notificationsSlice';
 import { cargarAnalyticsDesdeSupabase } from '../../redux/analyticsSlice';
 import type { ActividadAnalyticsTipo } from '../../services/analyticsService';
 
-// 2. Define la apariencia de cada actividad,
-// pero los eventos y fechas provienen realmente de Supabase.
-const getActividadVisual = (tipo: ActividadAnalyticsTipo) => {
+// Define la apariencia de cada actividad y traduce su título
+// utilizando el idioma seleccionado actualmente.
+const getActividadVisual = (
+  tipo: ActividadAnalyticsTipo,
+  t: (key: string) => string
+) => {
   if (tipo === 'equipo_registrado') {
     return {
       icono: 'add-circle' as const,
       color: '#1E3A8A',
-      titulo: 'Nuevo equipo registrado',
+      titulo: t('homeActivityEquipmentRegistered'),
     };
   }
 
@@ -28,33 +31,38 @@ const getActividadVisual = (tipo: ActividadAnalyticsTipo) => {
     return {
       icono: 'checkmark-circle' as const,
       color: '#059669',
-      titulo: 'Mantenimiento completado',
+      titulo: t('homeActivityMaintenanceCompleted'),
     };
   }
 
   return {
     icono: 'construct' as const,
     color: '#B45309',
-    titulo: 'Mantenimiento iniciado',
+    titulo: t('homeActivityMaintenanceStarted'),
   };
 };
 
-// 3. Presenta la fecha real almacenada en Supabase.
-// Por ahora usamos fecha y hora exactas para evitar tiempos relativos incorrectos.
-const formatearFechaActividad = (fecha: string) =>
-  new Date(fecha).toLocaleString();
+// Formatea la fecha utilizando el mismo idioma seleccionado en TechInventory.
+const formatearFechaActividad = (
+  fecha: string,
+  language: 'es' | 'en'
+) =>
+  new Date(fecha).toLocaleString(
+    language === 'en' ? 'en-US' : 'es-HN'
+  );
 
 export default function HomeTab({ navigation }: any) {
   // 3. Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
 
   // 4. Obtenemos la función t desde LanguageContext para mostrar los textos traducidos.
-  const { t } = useLanguage();
+  // Utilizamos tanto las traducciones como el idioma actual para las fechas.
+  const { language, t } = useLanguage();
 
   // 5. Obtenemos dispatch para poder enviar acciones a Redux.
   const dispatch = useAppDispatch();
 
-  
+
 
   // 7. Leemos las notificaciones reales, generadas al iniciar y finalizar mantenimientos.
   const notifications = useAppSelector((state) => state.notifications.notifications);
@@ -66,30 +74,30 @@ export default function HomeTab({ navigation }: any) {
   );
 
   // Leemos exclusivamente los indicadores recuperados desde Supabase.
-const {
-  data: analytics,
-  cargando: cargandoAnalytics,
-  error: errorAnalytics,
-} = useAppSelector((state) => state.analytics);
+  const {
+    data: analytics,
+    cargando: cargandoAnalytics,
+    error: errorAnalytics,
+  } = useAppSelector((state) => state.analytics);
 
-// Cada vez que el usuario entra o regresa al Home,
-// actualizamos los indicadores directamente desde PostgreSQL.
-useFocusEffect(
-  useCallback(() => {
-    void dispatch(cargarAnalyticsDesdeSupabase());
-  }, [dispatch])
-);
+  // Cada vez que el usuario entra o regresa al Home,
+  // actualizamos los indicadores directamente desde PostgreSQL.
+  useFocusEffect(
+    useCallback(() => {
+      void dispatch(cargarAnalyticsDesdeSupabase());
+    }, [dispatch])
+  );
 
-// Los nombres locales permiten conservar el JSX actual sin cambiar el diseño.
-const totalEquipos = analytics.equipos.total;
-const totalActivos = analytics.equipos.disponibles;
-const totalEnUso = analytics.equipos.enUso;
-const totalPendientes = analytics.mantenimientos.enProceso;
+  // Los nombres locales permiten conservar el JSX actual sin cambiar el diseño.
+  const totalEquipos = analytics.equipos.total;
+  const totalActivos = analytics.equipos.disponibles;
+  const totalEnUso = analytics.equipos.enUso;
+  const totalPendientes = analytics.mantenimientos.enProceso;
 
   // 9. Controla si el modal de notificaciones esta visible.
   const [showNotifications, setShowNotifications] = useState(false);
 
- 
+
 
   // 11. Abre el modal de notificaciones y marca todas como leidas, quitando el indicador rojo.
   const handleAbrirNotificaciones = () => {
@@ -102,7 +110,7 @@ const totalPendientes = analytics.mantenimientos.enProceso;
     <SafeAreaView edges={['top', 'left', 'right']} style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
 
-                {/* 13. Encabezado con saludo personalizado y campana de notificaciones */}
+        {/* 13. Encabezado con saludo personalizado y campana de notificaciones */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             {currentUser?.fotoPerfil ? (
@@ -111,11 +119,13 @@ const totalPendientes = analytics.mantenimientos.enProceso;
               <Ionicons name="person-circle" size={40} color={colors.primary} />
             )}
             <View>
+              {/* El saludo utiliza el nombre del usuario y respeta el idioma seleccionado. */}
               <Text style={[styles.saludo, { color: colors.text }]}>
-                Hola, {currentUser?.nombreCompleto.split(' ')[0] ?? 'usuario'}
+                {t('homeGreeting')}, {currentUser?.nombreCompleto.split(' ')[0] ?? t('homeUserFallback')}
               </Text>
+
               <Text style={[styles.subSaludo, { color: colors.textSecondary }]}>
-                Que tengas un excelente día
+                {t('homeGreetingMessage')}
               </Text>
             </View>
           </View>
@@ -129,59 +139,59 @@ const totalPendientes = analytics.mantenimientos.enProceso;
 
         {/* Estado de la consulta real a Supabase.
 No sustituye el contenido del Home para evitar bloquear la interfaz. */}
-{cargandoAnalytics && (
-  <Text
-    style={{
-      color: colors.textSecondary,
-      fontSize: 12,
-      marginBottom: 10,
-    }}
-  >
-    Actualizando indicadores...
-  </Text>
-)}
+        {cargandoAnalytics && (
+          <Text
+            style={{
+              color: colors.textSecondary,
+              fontSize: 12,
+              marginBottom: 10,
+            }}
+          >
+            {t('homeUpdatingIndicators')}
+          </Text>
+        )}
 
-{errorAnalytics && (
-  <Text
-    style={{
-      color: '#B91C1C',
-      fontSize: 12,
-      marginBottom: 10,
-    }}
-  >
-    No se pudieron actualizar los indicadores.
-  </Text>
-)}
+        {errorAnalytics && (
+          <Text
+            style={{
+              color: '#B91C1C',
+              fontSize: 12,
+              marginBottom: 10,
+            }}
+          >
+            {t('homeIndicatorsError')}
+          </Text>
+        )}
 
         {/* 15. Tarjetas de resumen: total de equipos, activos, en taller y mantenimientos pendientes */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: '#DBEAFE' }]}>
             <Ionicons name="server" size={20} color="#1E3A8A" />
-            <Text style={[styles.statLabel, { color: '#1E3A8A' }]}>Equipos</Text>
+            <Text style={[styles.statLabel, { color: '#1E3A8A' }]}>{t('homeEquipmentStat')}</Text>
             <Text style={[styles.statValue, { color: '#1E3A8A' }]}>{totalEquipos}</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: '#D1FAE5' }]}>
             <Ionicons name="checkmark-circle" size={20} color="#059669" />
-            <Text style={[styles.statLabel, { color: '#059669' }]}>Disponibles</Text>
+            <Text style={[styles.statLabel, { color: '#059669' }]}>{t('homeAvailableStat')}</Text>
             <Text style={[styles.statValue, { color: '#059669' }]}>{totalActivos}</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: '#FEE2E2' }]}>
             <Ionicons name="build" size={20} color="#B91C1C" />
-            <Text style={[styles.statLabel, { color: '#B91C1C' }]}>En Uso</Text>
+            <Text style={[styles.statLabel, { color: '#B91C1C' }]}>{t('homeInUseStat')}</Text>
             <Text style={[styles.statValue, { color: '#B91C1C' }]}>{totalEnUso}</Text>
           </View>
 
           <View style={[styles.statCard, { backgroundColor: '#FEF3C7' }]}>
             <Ionicons name="time" size={20} color="#B45309" />
-            <Text style={[styles.statLabel, { color: '#B45309' }]}>Mantenimientos</Text>
+            <Text style={[styles.statLabel, { color: '#B45309' }]}>{t('homeMaintenanceStat')}</Text>
             <Text style={[styles.statValue, { color: '#B45309' }]}>{totalPendientes}</Text>
           </View>
         </View>
 
         {/* 16. Seccion: acciones rapidas */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Acciones rápidas</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('quickActionsTitle')}</Text>
         <View style={styles.actionsRow}>
 
           {/* 17. Mantenimiento lleva directo a la pestaña de Mantenimiento (lista de mantenimientos) */}
@@ -190,7 +200,7 @@ No sustituye el contenido del Home para evitar bloquear la interfaz. */}
             onPress={() => navigation.navigate('Mantenimiento')}
           >
             <Ionicons name="list-outline" size={26} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Mantenimiento</Text>
+            <Text style={[styles.actionText, { color: colors.text }]}>{t('maintenanceAction')}</Text>
           </TouchableOpacity>
 
           {/* 18. Registrar equipo navega a la pantalla de registro dentro del Stack de Equipos */}
@@ -199,7 +209,9 @@ No sustituye el contenido del Home para evitar bloquear la interfaz. */}
             onPress={() => navigation.navigate('Equipos', { screen: 'RegisterEquipment' })}
           >
             <Ionicons name="add-circle-outline" size={26} color="#FFFFFF" />
-            <Text style={styles.actionTextPrimary}>Registrar{'\n'}equipo</Text>
+            <Text style={styles.actionTextPrimary}>
+              {t('registerEquipmentButton')}
+            </Text>
           </TouchableOpacity>
 
           {/* 19. Nuevo mantenimiento navega al escaner que arranca el flujo de mantenimiento */}
@@ -208,82 +220,87 @@ No sustituye el contenido del Home para evitar bloquear la interfaz. */}
             onPress={() => navigation.navigate('Mantenimiento', { screen: 'EnterEquipmentCodeScreen' })}
           >
             <Ionicons name="construct-outline" size={26} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.text }]}>Nuevo{'\n'}mantenimiento</Text>
+            <Text style={[styles.actionText, { color: colors.text }]}>
+              {t('newMaintenanceButton')}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* 20. Seccion: actividad reciente */}
         <View style={styles.activityHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>Actividad reciente</Text>
-         {/* Mostramos que se trata de los eventos más recientes sin ofrecer
+          <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>
+            {t('homeRecentActivity')}
+          </Text>
+          {/* Mostramos que se trata de los eventos más recientes sin ofrecer
 una acción que todavía no existe. */}
-<Text
-  style={[
-    styles.verTodasText,
-    { color: colors.textSecondary },
-  ]}
->
-  Últimos 5
-</Text>
+          <Text
+            style={[
+              styles.verTodasText,
+              { color: colors.textSecondary },
+            ]}
+          >
+            {t('homeLatestFive')}
+          </Text>
         </View>
 
         {/* La actividad reciente ahora proviene de equipos y mantenimientos
 almacenados realmente en Supabase. */}
-{analytics.actividadReciente.length === 0 ? (
-  <Text
-    style={{
-      color: colors.textSecondary,
-      fontSize: 13,
-      textAlign: 'center',
-      paddingVertical: 18,
-    }}
-  >
-    No hay actividad registrada todavía.
-  </Text>
-) : (
-  analytics.actividadReciente.map((item) => {
-    const visual = getActividadVisual(item.tipo);
-
-    return (
-      <View
-        key={item.id}
-        style={[
-          styles.activityRow,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <Ionicons
-          name={visual.icono}
-          size={22}
-          color={visual.color}
-        />
-
-        <View style={{ flex: 1 }}>
+        {analytics.actividadReciente.length === 0 ? (
           <Text
-            style={[
-              styles.activityTitulo,
-              { color: colors.text },
-            ]}
+            style={{
+              color: colors.textSecondary,
+              fontSize: 13,
+              textAlign: 'center',
+              paddingVertical: 18,
+            }}
           >
-            {visual.titulo}
+            {t('homeNoActivity')}
           </Text>
+        ) : (
+          analytics.actividadReciente.map((item) => {
+            // El título de cada actividad se obtiene según el idioma actual.
+            const visual = getActividadVisual(item.tipo, t);
 
-          <Text
-            style={[
-              styles.activityDetalle,
-              { color: colors.textSecondary },
-            ]}
-          >
-            {item.codigoEquipo} • {formatearFechaActividad(item.fecha)}
-          </Text>
-        </View>
-      </View>
-    );
-  })
-)}
+            return (
+              <View
+                key={item.id}
+                style={[
+                  styles.activityRow,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.border,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={visual.icono}
+                  size={22}
+                  color={visual.color}
+                />
+
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[
+                      styles.activityTitulo,
+                      { color: colors.text },
+                    ]}
+                  >
+                    {visual.titulo}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.activityDetalle,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
+                    {item.codigoEquipo} • {formatearFechaActividad(item.fecha, language)}
+                  </Text>
+                </View>
+              </View>
+            );
+          })
+        )}
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -294,7 +311,7 @@ almacenados realmente en Supabase. */}
           <View style={[styles.modalContent, { backgroundColor: colors.cardBackground ?? colors.surface }]}>
 
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Notificaciones</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('homeNotificationsTitle')}</Text>
               <TouchableOpacity onPress={() => setShowNotifications(false)}>
                 <Ionicons name="close" size={26} color={colors.textSecondary} />
               </TouchableOpacity>
@@ -302,7 +319,7 @@ almacenados realmente en Supabase. */}
 
             {notifications.length === 0 ? (
               <Text style={[styles.modalEmptyText, { color: colors.textSecondary }]}>
-                No hay notificaciones todavía.
+                {t('homeNoNotifications')}
               </Text>
             ) : (
               <ScrollView style={styles.modalList}>
@@ -317,9 +334,16 @@ almacenados realmente en Supabase. */}
                       color={n.tipo === 'inicio' ? '#F59E0B' : '#059669'}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.notifTexto, { color: colors.text }]}>{n.mensaje}</Text>
+                      {/* Reconstruimos el mensaje para que incluso las notificaciones antiguas cambien de idioma. */}
+                      <Text style={[styles.notifTexto, { color: colors.text }]}>
+                        {n.tipo === 'inicio'
+                          ? `${t('homeNotificationMaintenanceStarted')} ${n.codigoEquipo}`
+                          : `${t('homeNotificationMaintenanceCompleted')} ${n.codigoEquipo}`}
+                      </Text>
                       <Text style={[styles.notifFecha, { color: colors.textSecondary }]}>
-                        {new Date(n.fecha).toLocaleString()}
+                        {new Date(n.fecha).toLocaleString(
+                          language === 'en' ? 'en-US' : 'es-HN'
+                        )}
                       </Text>
                     </View>
                   </View>
@@ -342,7 +366,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  
+
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   avatarImage: { width: 40, height: 40, borderRadius: 20 },
   saludo: { fontSize: 17, fontWeight: '700' },

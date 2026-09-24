@@ -78,7 +78,7 @@ export default function TabsNavigator() {
         name='Reportes'
         component={ReportsScreen}
         options={{
-          tabBarLabel: 'Reportes',
+          tabBarLabel: t('reportsTab'),
         }}
       />
       

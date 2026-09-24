@@ -27,6 +27,7 @@ import {
   MaintenancePriority,
   MaintenanceType,
 } from '../../redux/maintenanceSlice';
+import { agregarNotificacion } from '../../redux/notificationsSlice';
 // Permite cambiar automáticamente el equipo a Taller al iniciar mantenimiento.
 import { enviarEquipoATallerPorMantenimiento } from '../../redux/equipmentSlice';
 // Genera la constancia PDF tamaño carta del mantenimiento.
@@ -75,6 +76,24 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
     (state) => state.maintenance.maintenances
   );
 
+  // Obtenemos el usuario que actualmente utiliza TechInventory.
+  // Este usuario será guardado como responsable del registro, no como técnico.
+  const currentUser = useAppSelector((state) =>
+    state.users.users.find((user) => user.id === state.users.currentUserId)
+  );
+
+  // Un mantenimiento solamente puede ser trabajado por el técnico
+// que tiene actualmente iniciada su sesión en TechInventory.
+const esTecnicoAutenticado =
+  currentUser?.rol === 'tecnico' &&
+  currentUser.empleadoId !== undefined;
+
+// Si existe un mantenimiento, comprobamos que pertenezca
+// exactamente a la cuenta técnica que tiene iniciada la sesión.
+const mantenimientoPerteneceAlUsuario =
+  !maintenanceExistente ||
+  maintenanceExistente.tecnicoUsuarioId === currentUser?.id;
+
   // 9. El codigo real del equipo viene del mantenimiento existente (edicion) o de los params (creacion).
   const codigoEquipo = maintenanceExistente?.codigoEquipo ?? codigoEquipoParam;
 
@@ -82,16 +101,21 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   const equipments = useAppSelector((state) => state.equipment.equipments);
   const equipo = equipments.find((e) => e.codigo === codigoEquipo);
 
-  // 11. Si el mantenimiento ya esta finalizado, la pantalla se abre en modo solo lectura.
-  const soloLectura = maintenanceExistente?.status === 'finalizado';
+  // 11. El mantenimiento queda en solo lectura cuando:
+// - ya fue finalizado;
+// - el usuario autenticado no es técnico;
+// - o el mantenimiento pertenece a otro técnico.
+const soloLectura =
+  maintenanceExistente?.status === 'finalizado' ||
+  !esTecnicoAutenticado ||
+  !mantenimientoPerteneceAlUsuario;
 
   // 12. Estados locales del formulario: tipo y prioridad del mantenimiento.
   // Se precargan con los datos existentes cuando estamos editando.
   const [tipo, setTipo] = useState<MaintenanceType>(maintenanceExistente?.tipo ?? 'preventivo');
   const [prioridad, setPrioridad] = useState<MaintenancePriority>(maintenanceExistente?.prioridad ?? 'media');
 
-  // 13. Tecnico responsable (por ahora un campo simple de texto).
-  const [tecnico, setTecnico] = useState(maintenanceExistente?.tecnico ?? '');
+  
 
   // 14. Estado local de la lista de verificacion.
   const [checklist, setChecklist] = useState<ChecklistItem[]>(
@@ -155,11 +179,24 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   // 21. Valida los campos obligatorios antes de continuar.
   const validarCampos = () => {
 
-    // Técnico y descripción continúan siendo obligatorios.
-    if (!tecnico.trim() || !descripcion.trim()) {
-      Alert.alert(t('incompleteFieldsTitle'), t('incompleteFieldsMessage'));
-      return false;
-    }
+   // Solamente una cuenta autenticada con rol Técnico
+// y vinculada a un empleado puede registrar mantenimiento.
+if (!esTecnicoAutenticado || !currentUser) {
+  Alert.alert(
+    'Acceso restringido',
+    'Solamente un técnico autenticado puede registrar o modificar un mantenimiento.'
+  );
+  return false;
+}
+
+// Un técnico nunca puede modificar el mantenimiento asignado a otra cuenta.
+if (!mantenimientoPerteneceAlUsuario) {
+  Alert.alert(
+    'Mantenimiento no autorizado',
+    'Este mantenimiento pertenece a otro técnico y no puede ser modificado.'
+  );
+  return false;
+}
 
     // Si el equipo queda fuera de servicio necesitamos conocer la causa.
     if (estadoFinal === 'Fuera de servicio' && !motivoBaja.trim()) {
@@ -175,7 +212,24 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
 
   // 22. Construye el objeto de datos editables, comun para crear y actualizar.
   const construirDatosFormulario = () => ({
-    tecnico: tecnico.trim(),
+    // Guardamos las relaciones reales del técnico y también su nombre
+    // para conservar evidencia histórica dentro del mantenimiento.
+    // El técnico nunca se selecciona manualmente.
+// La identidad proviene directamente de la sesión autenticada.
+// Si editamos un mantenimiento existente conservamos sus valores históricos.
+tecnicoEmpleadoId:
+  maintenanceExistente?.tecnicoEmpleadoId ??
+  currentUser?.empleadoId,
+
+tecnicoUsuarioId:
+  maintenanceExistente?.tecnicoUsuarioId ??
+  currentUser?.id,
+
+tecnico:
+  maintenanceExistente?.tecnico ??
+  currentUser?.nombreCompleto ??
+  '',
+
     tipo,
     prioridad,
     checklist,
@@ -187,27 +241,44 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   });
 
   // 23. Guarda el mantenimiento dejandolo en_proceso, sin pasar a la firma.
-  // Si ya existia, actualiza sus datos; si es nuevo, lo crea (esto es "Iniciar proceso").
-  // En ambos casos regresa a la lista de mantenimientos al terminar.
+  // Si ya existia, actualiza sus datos; si es nuevo, lo crea y notifica que se inicio.
   const handleGuardar = () => {
     if (!validarCampos()) return;
 
     if (maintenanceExistente) {
       dispatch(actualizarMantenimiento({ id: maintenanceExistente.id, ...construirDatosFormulario() }));
     } else {
+      const id = `MT-${Date.now()}`;
       // Creamos el mantenimiento y lo dejamos oficialmente En proceso.
       dispatch(
         crearMantenimiento({
-          // ID técnico temporal. Supabase lo sustituirá posteriormente por un UUID.
-          id: `MT-${Date.now()}`,
+          id,
           codigoMantenimiento: generateNextMaintenanceCode(maintenances),
-
           codigoEquipo,
+
+          // Evidencia del usuario que realmente tiene iniciada la sesión.
+          registradoPorId: currentUser?.id,
+          registradoPorNombre: currentUser?.nombreCompleto,
+          registradoPorCorreo: currentUser?.correo,
+
           ...construirDatosFormulario(),
           status: 'en_proceso',
           fechaInicio: new Date().toISOString(),
         })
       );
+
+      // 23a. Notificamos que se inicio un mantenimiento nuevo, solo la primera vez que se crea.
+      dispatch(
+        agregarNotificacion({
+          id: `NTF-${Date.now()}`,
+          tipo: 'inicio',
+          mensaje: `Se inició mantenimiento del equipo ${codigoEquipo}`,
+          codigoEquipo,
+          leida: false,
+          fecha: new Date().toISOString(),
+        })
+      );
+
       // Al iniciar el mantenimiento, el equipo pasa automáticamente a Taller.
       dispatch(enviarEquipoATallerPorMantenimiento({ codigo: codigoEquipo }));
     }
@@ -216,7 +287,7 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
   };
 
   // 24. Valida los campos y navega a la pantalla de firma, sin marcar el mantenimiento como finalizado todavia.
-  // Si ya existia, primero guarda los cambios editados antes de ir a firmar.
+  // Si ya existia, primero guarda los cambios editados; si es nuevo, lo crea y notifica que se inicio.
   const handleContinuarFirma = () => {
     if (!validarCampos()) return;
 
@@ -240,11 +311,30 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
           id,
           codigoMantenimiento: generateNextMaintenanceCode(maintenances),
           codigoEquipo,
+
+          // Evidencia del usuario que realmente tiene iniciada la sesión.
+          registradoPorId: currentUser?.id,
+          registradoPorNombre: currentUser?.nombreCompleto,
+          registradoPorCorreo: currentUser?.correo,
+
           ...construirDatosFormulario(),
           status: 'en_proceso',
           fechaInicio: new Date().toISOString(),
         })
       );
+
+      // 24a. Notificamos que se inicio un mantenimiento nuevo, solo la primera vez que se crea.
+      dispatch(
+        agregarNotificacion({
+          id: `NTF-${Date.now()}`,
+          tipo: 'inicio',
+          mensaje: `Se inició mantenimiento del equipo ${codigoEquipo}`,
+          codigoEquipo,
+          leida: false,
+          fecha: new Date().toISOString(),
+        })
+      );
+
       // El equipo debe estar en Taller antes de continuar con la firma.
       dispatch(enviarEquipoATallerPorMantenimiento({ codigo: codigoEquipo }));
     }
@@ -405,14 +495,41 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
             ))}
           </View>
 
-          {/* 31. Seccion: tecnico responsable */}
-          <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenanceTechnicianLabel')}</Text>
-          <CustomInput
-            type="text"
-            placeholder={t('maintenanceTechnicianLabel')}
-            value={tecnico}
-            onChange={setTecnico}
-          />
+          {/* 31. El técnico responsable proviene directamente de la sesión autenticada.
+No puede seleccionarse ni modificarse manualmente. */}
+<Text style={[styles.sectionLabel, { color: colors.text }]}>
+  Técnico responsable
+</Text>
+
+<View
+  style={[
+    styles.technicianInfo,
+    {
+      backgroundColor: colors.surface,
+      borderColor: colors.border,
+    },
+  ]}
+>
+  <Ionicons
+    name="person-outline"
+    size={20}
+    color={colors.primary}
+  />
+
+  <Text
+    style={{
+      color: colors.text,
+      flex: 1,
+      fontWeight: '600',
+    }}
+  >
+    {maintenanceExistente?.tecnico
+      ?? (esTecnicoAutenticado
+        ? currentUser?.nombreCompleto
+        : 'Usuario sin perfil técnico')}
+  </Text>
+</View>
+
 
           {/* 32. Seccion: prioridad, mediante chips */}
           <Text style={[styles.sectionLabel, { color: colors.text }]}>{t('maintenancePriorityLabel')}</Text>
@@ -650,6 +767,9 @@ export default function NewMaintenanceScreen({ navigation, route }: any) {
           <View style={{ height: 30 }} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      
+
     </SafeAreaView >
   );
 }
@@ -693,6 +813,20 @@ const styles = StyleSheet.create({
   },
   equipoBadgeText: { color: '#059669', fontSize: 11, fontWeight: '700' },
   sectionLabel: { fontSize: 14, fontWeight: '700', marginBottom: 8, marginTop: 16 },
+
+  // Caja informativa que muestra el técnico asociado a la sesión.
+// No es interactiva porque el técnico no puede cambiarse manualmente.
+technicianInfo: {
+  minHeight: 48,
+  borderWidth: 1,
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+  marginBottom: 4,
+},
+
   toggleRow: { flexDirection: 'row', gap: 8 },
   toggleOption: {
     flex: 1,
@@ -756,4 +890,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 14,
   },
+
+  
+
 });

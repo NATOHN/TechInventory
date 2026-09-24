@@ -2,7 +2,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 // 2. Importamos el servicio encargado de consultar public.usuarios.
-import { obtenerUsuarios } from '../services/usuariosService';
+import { actualizarPerfilEnSupabase, obtenerUsuarios } from '../services/usuariosService';
 
 // 3. Roles disponibles actualmente dentro de TechInventory.
 export type UserRole = 'tecnico' | 'administrador';
@@ -59,6 +59,37 @@ export const cargarUsuariosDesdeSupabase = createAsyncThunk<
     }
   }
 );
+
+// Actualiza el perfil del usuario autenticado primero en Supabase
+// y luego sincroniza el resultado con Redux.
+export const actualizarPerfilPropioEnSupabase = createAsyncThunk<
+  {
+    id: string;
+    nombreCompleto: string;
+    fotoPerfil?: string;
+  },
+  {
+    usuarioId: string;
+    nombreCompleto: string;
+    fotoPerfil?: string;
+  },
+  { rejectValue: string }
+>(
+  'users/actualizarPerfilPropioEnSupabase',
+  async (datos, { rejectWithValue }) => {
+    try {
+      return await actualizarPerfilEnSupabase(datos);
+    } catch (error) {
+      const mensaje =
+        error instanceof Error
+          ? error.message
+          : 'No se pudo actualizar el perfil.';
+
+      return rejectWithValue(mensaje);
+    }
+  }
+);
+
 
 // 8. Slice encargado del estado de usuarios.
 const usersSlice = createSlice({
@@ -148,6 +179,31 @@ const usersSlice = createSlice({
       state.cargando = false;
       state.error =
         action.payload ?? 'No se pudieron cargar los usuarios.';
+    });
+
+    // Indicamos que comenzó la actualización del perfil.
+    builder.addCase(actualizarPerfilPropioEnSupabase.pending, (state) => {
+      state.cargando = true;
+      state.error = null;
+    });
+
+    // Sincronizamos Redux con los datos confirmados por Supabase.
+    builder.addCase(actualizarPerfilPropioEnSupabase.fulfilled, (state, action) => {
+      const user = state.users.find((u) => u.id === action.payload.id);
+
+      if (user) {
+        user.nombreCompleto = action.payload.nombreCompleto;
+        user.fotoPerfil = action.payload.fotoPerfil;
+      }
+
+      state.cargando = false;
+    });
+
+    // Conservamos el error si Supabase rechaza el UPDATE.
+    builder.addCase(actualizarPerfilPropioEnSupabase.rejected, (state, action) => {
+      state.cargando = false;
+      state.error =
+        action.payload ?? 'No se pudo actualizar el perfil.';
     });
   },
 });

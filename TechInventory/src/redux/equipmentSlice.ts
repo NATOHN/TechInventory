@@ -53,6 +53,12 @@ export type Equipment = {
     empleadoAsignado: string;
     status: EquipmentStatus;
     foto: ImageSourcePropType;
+
+    // Usuario de TechInventory que realizó originalmente el registro del equipo.
+    registradoPorId?: string;
+    registradoPorNombre?: string;
+
+
     // Guarda los cambios de ubicación realizados al equipo.
     historialUbicaciones?: EquipmentLocationHistory[];
     // Guarda todos los cambios de estado realizados sobre el equipo.
@@ -69,49 +75,10 @@ type EquipmentState = {
 };
 
 
-// 5. Creamos el estado inicial del módulo de equipos.
-// Por ahora comenzamos con un arreglo vacío.
+// 5. Redux comienza vacío.
+// Los equipos reales serán recuperados desde Supabase al iniciar TechInventory.
 const initialState: EquipmentState = {
-    equipments: [
-        // 12. Primer equipo de prueba.
-        {
-            codigo: "EQ-0001",
-            marca: "Dell",
-            modelo: "Inspiron 3530",
-            serie: "ABC123456",
-            sucursal: "Tegucigalpa",
-            departamento: "Administración",
-            empleadoAsignado: "Carlos López",
-            status: "activo",
-            foto: require("../img/dell.png"),
-        },
-
-        // 13. Segundo equipo de prueba.
-        {
-            codigo: "EQ-0002",
-            marca: "HP",
-            modelo: "ProDesk 400 G9",
-            serie: "N/A",
-            sucursal: "San Pedro Sula",
-            departamento: "Contabilidad",
-            empleadoAsignado: "Sin asignar",
-            status: "taller",
-            foto: require("../img/hp-prodesk-400-g9.png"),
-        },
-
-        // 14. Tercer equipo de prueba.
-        {
-            codigo: "EQ-0003",
-            marca: "Dell",
-            modelo: "Inspiron 5555",
-            serie: "AB554FG",
-            sucursal: "San Pedro Sula",
-            departamento: "Vetas",
-            empleadoAsignado: "Josue Meza",
-            status: "baja",
-            foto: require("../img/dell-5555.jpg"),
-        },
-    ],
+    equipments: [],
 };
 
 
@@ -132,9 +99,10 @@ const equipmentSlice = createSlice({
             state.equipments.push(action.payload);
         },
 
-        // Reemplaza el arreglo completo con los equipos recuperados de AsyncStorage.
+        // Reemplaza el arreglo completo con equipos recuperados desde
+        // Supabase o, únicamente como respaldo, desde AsyncStorage.
         cargarEquipos: (state, action: PayloadAction<Equipment[]>) => {
-            //11. Sustituimos los equipos actuales por los recuperados desde AsyncStorage.
+            // Sustituimos el inventario actual por la fuente que acaba de cargarse.
             state.equipments = action.payload;
         },
 
