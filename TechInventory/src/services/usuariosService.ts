@@ -1,6 +1,9 @@
 // Importamos el cliente principal utilizado por TechInventory.
 import { supabase } from "../lib/supabase";
 
+// Convierte el base64 generado por ImagePicker al formato que acepta Supabase Storage.
+import { decode } from "base64-arraybuffer";
+
 // Importamos solamente el tipo para mantener exactamente
 // la estructura que consume actualmente Redux.
 import type { AppUser } from "../redux/usersSlice";
@@ -71,4 +74,88 @@ export const crearUsuarioEnSupabase = async (
     if (data?.error) {
         throw new Error(data.error);
     }
+};
+
+// Datos que un usuario puede modificar de su propio perfil.
+// No permitimos cambiar rol, empleado_id ni otros datos administrativos.
+export type ActualizarPerfilInput = {
+    usuarioId: string;
+    nombreCompleto: string;
+    fotoPerfil?: string;
+};
+
+// Actualiza únicamente los datos permitidos del usuario autenticado.
+export const actualizarPerfilEnSupabase = async (
+    datos: ActualizarPerfilInput
+): Promise<Pick<AppUser, "id" | "nombreCompleto" | "fotoPerfil">> => {
+    const nombreLimpio = datos.nombreCompleto.trim();
+
+    if (!nombreLimpio) {
+        throw new Error("El nombre completo es obligatorio.");
+    }
+
+    const { data, error } = await supabase
+        .from("usuarios")
+        .update({
+            nombre_completo: nombreLimpio,
+            foto_perfil: datos.fotoPerfil ?? null,
+        })
+        .eq("id", datos.usuarioId)
+        .select("id, nombre_completo, foto_perfil")
+        .single();
+
+    if (error) {
+        console.log("Error de Supabase al actualizar perfil:", {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+        });
+
+        throw new Error(error.message);
+    }
+
+    return {
+        id: data.id,
+        nombreCompleto: data.nombre_completo,
+        fotoPerfil: data.foto_perfil ?? undefined,
+    };
+};
+
+// Sube o reemplaza la fotografía del propio usuario en Supabase Storage.
+// Cada usuario posee una carpeta identificada con su UUID de Supabase Auth.
+export const subirFotoPerfilEnStorage = async (
+    usuarioId: string,
+    fotoBase64: string,
+    mimeType: string
+): Promise<string> => {
+    // Utilizamos una ruta estable para reemplazar la foto anterior
+    // y evitar acumular imágenes cada vez que se cambia el perfil.
+    const fotoPath = `${usuarioId}/avatar`;
+
+    const { error } = await supabase.storage
+        .from("fotos-perfil")
+        .upload(
+            fotoPath,
+            decode(fotoBase64),
+            {
+                contentType: mimeType || "image/jpeg",
+                cacheControl: "3600",
+                upsert: true,
+            }
+        );
+
+    if (error) {
+        console.log("Error de Supabase Storage al subir foto:", error);
+        throw new Error(error.message);
+    }
+
+    // El bucket es público únicamente para poder mostrar el avatar directamente.
+    const { data } = supabase.storage
+        .from("fotos-perfil")
+        .getPublicUrl(fotoPath);
+
+    // El parámetro evita que React Native siga mostrando una versión
+    // almacenada en caché después de cambiar la foto.
+    return `${data.publicUrl}?v=${Date.now()}`;
 };

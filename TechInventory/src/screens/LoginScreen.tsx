@@ -1,6 +1,6 @@
 // 1. Importaciones.
 import { useState } from 'react';
-import { View, Text, StyleSheet, Alert, TouchableOpacity, } from 'react-native';
+import { View, Text, StyleSheet, Alert, TouchableOpacity, KeyboardAvoidingView, ScrollView, Platform, } from 'react-native';
 
 import CustomInput from '../components/CustomInput';
 import CustomButton from '../components/CustomButton';
@@ -19,7 +19,7 @@ type Props = NativeStackScreenProps<
   'Login'
 >;
 
-export default function LoginScreen({ navigation}: Props) {
+export default function LoginScreen({ navigation }: Props) {
   // 2. Estados utilizados únicamente por el formulario de inicio de sesión.
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,10 +40,10 @@ export default function LoginScreen({ navigation}: Props) {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       Alert.alert(
         'Contraseña inválida',
-        'La contraseña debe contener al menos 6 caracteres.'
+        'La contraseña debe contener al menos 8 caracteres.'
       );
       return;
     }
@@ -77,78 +77,87 @@ export default function LoginScreen({ navigation}: Props) {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: colors.background },
-      ]}
+    <KeyboardAvoidingView
+      style={[styles.keyboardView, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* 4. Identidad principal de la aplicación. */}
-      <Text style={[styles.title, { color: colors.primary }]}>
-        TechInventory
-      </Text>
-
-      <Text
-        style={[
-          styles.subtitle,
-          { color: colors.textSecondary },
-        ]}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
-        {t('loginSubtitle')}
-      </Text>
+        {/* 4. Identidad principal de la aplicación. */}
+        <Text style={[styles.title, { color: colors.primary }]}>
+          TechInventory
+        </Text>
 
-      {/* 5. El correo será la identidad utilizada por Supabase Auth. */}
-      <CustomInput
-        type="email"
-        placeholder={t('emailPlaceholder')}
-        value={email}
-        onChange={setEmail}
-      />
+        <Text
+          style={[
+            styles.subtitle,
+            { color: colors.textSecondary },
+          ]}
+        >
+          {t('loginSubtitle')}
+        </Text>
 
-      {/* 6. La contraseña se envía solamente a Supabase Auth.
+        {/* 5. El correo será la identidad utilizada por Supabase Auth. */}
+        <CustomInput
+          type="email"
+          placeholder={t('emailPlaceholder')}
+          value={email}
+          onChange={setEmail}
+        />
+
+        {/* 6. La contraseña se envía solamente a Supabase Auth.
       Nunca se almacena dentro de Redux. */}
-      <CustomInput
-        type="password"
-        placeholder={t('passwordPlaceholder')}
-        value={password}
-        onChange={setPassword}
-      />
+        <CustomInput
+          type="password"
+          placeholder={t('passwordPlaceholder')}
+          value={password}
+          onChange={setPassword}
+        />
 
-      {/* 7. Recuperación de contraseña mediante el correo registrado en Supabase. */}
-<TouchableOpacity
-  style={styles.forgotButton}
-  onPress={() =>
-    navigation.navigate('ForgotPassword', {
-      emailInicial: email.trim().toLowerCase(),
-    })
-  }
-  disabled={loading}
->
-  <Text
-    style={[
-      styles.forgotText,
-      { color: colors.primary },
-    ]}
-  >
-    ¿Olvidaste tu contraseña?
-  </Text>
-</TouchableOpacity>
+        {/* 7. Recuperación de contraseña mediante el correo registrado en Supabase. */}
+        <TouchableOpacity
+          style={styles.forgotButton}
+          onPress={() =>
+            navigation.navigate('ForgotPassword', {
+              emailInicial: email.trim().toLowerCase(),
+            })
+          }
+          disabled={loading}
+        >
+          <Text
+            style={[
+              styles.forgotText,
+              { color: colors.primary },
+            ]}
+          >
+            ¿Olvidaste tu contraseña?
+          </Text>
+        </TouchableOpacity>
 
-      
 
-      <CustomButton
-        title={loading ? 'Ingresando...' : t('loginButton')}
-        onPress={handleLogin}
-      />
-    </View>
+
+        <CustomButton
+          title={loading ? 'Ingresando...' : t('loginButton')}
+          onPress={handleLogin}
+        />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  keyboardView: {
     flex: 1,
+  },
+
+  container: {
+    flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   title: {
     fontSize: 30,
@@ -162,14 +171,14 @@ const styles = StyleSheet.create({
   },
 
   forgotButton: {
-  alignSelf: 'flex-end',
-  marginTop: -4,
-  marginBottom: 18,
-  paddingVertical: 4,
-},
+    alignSelf: 'flex-end',
+    marginTop: -4,
+    marginBottom: 18,
+    paddingVertical: 4,
+  },
 
-forgotText: {
-  fontSize: 14,
-  fontWeight: '600',
-},
+  forgotText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

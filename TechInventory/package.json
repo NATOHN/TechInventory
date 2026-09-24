@@ -42,8 +42,8 @@
     "xlsx": "^0.18.5"
   },
   "overrides": {
-  "expo-font": "14.0.12"
-},
+    "expo-font": "14.0.12"
+  },
   "devDependencies": {
     "@types/react": "~19.1.0",
     "typescript": "~5.9.2"

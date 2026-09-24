@@ -1,7 +1,9 @@
 import { Text, ScrollView, StyleSheet, TextInput, View, TouchableOpacity, Modal } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+// Permite actualizar el inventario cada vez que volvemos a esta pantalla.
+import { useFocusEffect } from "@react-navigation/native";
 
 
 import EquipmentCard from "../../components/EquipmentCard";
@@ -10,6 +12,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../context/ThemeContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAppSelector } from "../../redux/hooks";
+// Recupera nuevamente el inventario compartido desde Supabase.
+import { refrescarEquiposDesdeSupabase } from "../../redux/store";
 // Las marcas continúan siendo locales temporalmente.
 // Las sucursales y departamentos ahora se obtienen desde Supabase mediante Redux.
 import { BRAND_OPTIONS } from "../../data/equipmentCatalogs";
@@ -28,6 +32,17 @@ const EquipmentListScreen = ({ navigation }: Props) => {
     const { colors } = useTheme();
     //Obtenemos la función t desde LanguageContext
     const { t } = useLanguage();
+
+    // Cada vez que el usuario entra o regresa a Equipos,
+// consultamos nuevamente Supabase para recibir cambios de otros dispositivos.
+useFocusEffect(
+    useCallback(() => {
+        void refrescarEquiposDesdeSupabase().catch((error) => {
+            // Si la red falla conservamos el último inventario disponible en Redux.
+            console.log("No se pudo actualizar el inventario desde Supabase:", error);
+        });
+    }, [])
+);
 
     // Creamos un estado para almacenar lo que el usuario escriba en el buscador.
     const [searchText, setSearchText] = useState("");
