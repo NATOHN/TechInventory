@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useAppSelector } from '../../redux/hooks';
 import { AppUser } from '../../redux/usersSlice';
 
@@ -13,6 +14,7 @@ type FilterType = 'todos' | 'tecnico' | 'administrador';
 export default function UsersScreen({ navigation }: any) {
   // 3. Obtenemos la paleta de colores actual desde ThemeContext.
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   // 4. Estado local que controla que filtro esta activo actualmente.
   const [filter, setFilter] = useState<FilterType>('todos');
@@ -28,16 +30,21 @@ export default function UsersScreen({ navigation }: any) {
 
   // 7. Definimos las pestañas visibles con su respectivo conteo.
   const tabs: { key: FilterType; label: string }[] = [
-    { key: 'todos', label: `Todos (${users.length})` },
-    { key: 'tecnico', label: `Técnicos (${users.filter((u) => u.rol === 'tecnico').length})` },
-    { key: 'administrador', label: `Admins (${users.filter((u) => u.rol === 'administrador').length})` },
+    { key: 'todos', label: `${t('usersAll')} (${users.length})` },
+    { key: 'tecnico', label: `${t('usersTechnicians')} (${users.filter((u) => u.rol === 'tecnico').length})` },
+    { key: 'administrador', label: `${t('usersAdmins')} (${users.filter((u) => u.rol === 'administrador').length})` },
   ];
 
-  // 8. Muestra los datos basicos de un usuario. La edicion se agregara en una futura iteracion.
+  // 8. Mostramos tanto el empleado asociado como el identificador corto de su cuenta.
+  // Mostramos el empleado relacionado, correo de acceso y rol asignado.
   const verDetalleUsuario = (usuario: AppUser) => {
     Alert.alert(
       usuario.nombreCompleto,
-      `Correo: ${usuario.correo}\nRol: ${usuario.rol === 'administrador' ? 'Administrador' : 'Técnico'}`
+      `${t('usersEmailLabel')}: ${usuario.correo}\n${t('usersRoleLabel')}: ${
+        usuario.rol === 'administrador'
+          ? t('usersAdministratorRole')
+          : t('usersTechnicianRole')
+      }`
     );
   };
 
@@ -51,7 +58,7 @@ export default function UsersScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color={colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.title, { color: colors.primary }]}>Usuarios y técnicos</Text>
+            <Text style={[styles.title, { color: colors.primary }]}>{t('usersTitle')}</Text>
           </View>
 
           {/* 10. Fila de pestañas para filtrar por rol */}
@@ -85,17 +92,24 @@ export default function UsersScreen({ navigation }: any) {
                 <View style={[styles.avatar, { backgroundColor: colors.background }]}>
                   <Ionicons name="person" size={20} color={colors.primary} />
                 </View>
-                <View style={styles.cardInfo}>
-                  <Text style={[styles.cardNombre, { color: colors.text }]}>{item.nombreCompleto}</Text>
-                  <Text style={[styles.cardCorreo, { color: colors.textSecondary }]}>{item.correo}</Text>
-                </View>
+                {/* Mostramos el empleado, su usuario corto y el correo de acceso. */}
+                {/* Mostramos el empleado asociado y el correo que utilizará para iniciar sesión. */}
+<View style={styles.cardInfo}>
+  <Text style={[styles.cardNombre, { color: colors.text }]}>
+    {item.nombreCompleto}
+  </Text>
+
+  <Text style={[styles.cardCorreo, { color: colors.textSecondary }]}>
+    {item.correo}
+  </Text>
+</View>
                 <View
                   style={[
                     styles.badge,
                     { backgroundColor: item.rol === 'administrador' ? '#1E3A8A' : '#059669' },
                   ]}
                 >
-                  <Text style={styles.badgeText}>{item.rol === 'administrador' ? 'ADMIN' : 'TÉCNICO'}</Text>
+                  <Text style={styles.badgeText}>{item.rol === 'administrador' ? t('usersAdminBadge') : t('usersTechnicianBadge')}</Text>
                 </View>
               </TouchableOpacity>
             )}
@@ -110,7 +124,7 @@ export default function UsersScreen({ navigation }: any) {
             onPress={() => navigation.navigate('NewUserScreen')}
           >
             <Ionicons name="add" size={22} color={colors.background} />
-            <Text style={[styles.bottomRegisterButtonText, { color: colors.background }]}>Registrar usuario</Text>
+            <Text style={[styles.bottomRegisterButtonText, { color: colors.background }]}>{t('usersRegisterButton')}</Text>
           </TouchableOpacity>
         </View>
       </View>

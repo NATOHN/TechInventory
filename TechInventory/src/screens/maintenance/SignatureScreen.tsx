@@ -17,6 +17,8 @@ import { agregarNotificacion } from '../../redux/notificationsSlice';
 import { activarEquipoTrasMantenimiento, cambiarUbicacionEquipo, darDeBajaEquipoPorMantenimiento, } from '../../redux/equipmentSlice';
 // Genera la constancia PDF utilizando la información final del mantenimiento.
 import { generateMaintenancePdf } from '../../utils/maintenancePdf';
+// Sube la firma definitiva del mantenimiento al bucket privado de Supabase Storage.
+import { subirFirmaMantenimiento } from '../../services/maintenanceSignaturesService';
 import SignaturePad, { SignaturePadRef } from '../../components/SignaturePad';
 import CustomButton from '../../components/CustomButton';
 
@@ -125,6 +127,19 @@ export default function SignatureScreen({ navigation, route }: any) {
         return;
       }
 
+      // Utilizamos el código visible como identificador estable de la carpeta.
+      // Para registros antiguos conservamos el id como respaldo.
+      const codigoMantenimiento =
+        maintenance.codigoMantenimiento ?? maintenance.id;
+
+      // Subimos primero la firma al Storage privado.
+      // Si la subida falla, el catch detendrá la finalización para evitar
+      // guardar un mantenimiento finalizado sin su firma permanente.
+      const firmaPath = await subirFirmaMantenimiento(
+        codigoMantenimiento,
+        uri
+      );
+
       // Conservamos los mismos datos tanto para Redux como para el PDF.
       const firmadoPorNombre = equipo.empleadoAsignado || 'Sin asignar';
       const fechaFinalizacion = new Date().toISOString();
@@ -134,6 +149,7 @@ export default function SignatureScreen({ navigation, route }: any) {
         finalizarMantenimiento({
           id: maintenanceId,
           firmaBase64: uri,
+          firmaPath,
           firmadoPorNombre,
         })
       );
@@ -190,6 +206,7 @@ export default function SignatureScreen({ navigation, route }: any) {
         ...maintenance,
         status: 'finalizado' as const,
         firmaBase64: uri,
+        firmaPath,
         firmadoPorNombre,
         fechaFinalizacion,
         fechaFirma: fechaFinalizacion,

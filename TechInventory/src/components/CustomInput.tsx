@@ -41,7 +41,8 @@ export default function CustomInput({ type = 'text', placeholder, value, onChang
   const getError = () => {
     if (!value) return undefined;
     if (type === 'email' && !value.includes('@')) return t('invalidEmail');
-    if (type === 'password' && value.length < 4) return t('shortPassword');
+    // Todas las contraseñas de TechInventory requieren al menos 8 caracteres.
+    if (type === 'password' && value.length < 8) return t('shortPassword');
     if (type === 'phone' && value.length < 8) return t('invalidPhone');
     if (type === 'text' && value.trim().length === 0) return t('requiredField');
   };

@@ -13,7 +13,9 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import { agregarEquipo, Equipment } from "../../redux/equipmentSlice";
 // Catálogo independiente de marcas disponibles.
-import { BRAND_OPTIONS, BRANCH_OPTIONS, EMPLOYEE_OPTIONS } from "../../data/equipmentCatalogs";
+// Las marcas continúan siendo un catálogo local.
+// Sucursales, departamentos y empleados ahora vienen desde Supabase mediante Redux.
+import { BRAND_OPTIONS } from "../../data/equipmentCatalogs";
 
 
 //Creacion de Props
@@ -35,6 +37,17 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     //Obtenemos los equipos que actualmente están almacenados dentro de Redux.
     const equipos = useAppSelector((state) => state.equipment.equipments);
 
+    // Obtenemos desde Redux los catálogos cargados previamente desde Supabase.
+    // Redux continúa siendo la fuente utilizada directamente por la interfaz.
+    const sucursalesSupabase = useAppSelector((state) => state.sucursales.sucursales);
+    const departamentosSupabase = useAppSelector((state) => state.departamentos.departamentos);
+    const empleadosSupabase = useAppSelector((state) => state.empleados.empleados);
+
+    // Identificamos al usuario que actualmente está utilizando TechInventory.
+// Este usuario quedará registrado como la persona que creó el equipo.
+const currentUser = useAppSelector((state) =>
+    state.users.users.find((user) => user.id === state.users.currentUserId)
+);
 
     //1. Creamos los estados
     const [marca, setMarca] = useState("");
@@ -57,25 +70,33 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
     const [showEmployeeModal, setShowEmployeeModal] = useState(false);
 
 
-    // Buscamos en el catálogo la sucursal seleccionada actualmente.
-    const selectedBranchOption = BRANCH_OPTIONS.find((branch) => branch.name === sucursal);
-
-    // Obtenemos únicamente los departamentos pertenecientes
-    // a la sucursal seleccionada.
-    const departamentosDisponibles = selectedBranchOption?.departments ?? [];
-
-    // Buscamos el departamento seleccionado dentro de la sucursal actual.
-    const selectedDepartmentOption = selectedBranchOption?.departments.find(
-        (department) => department.name === departamento
+    // Buscamos la sucursal seleccionada dentro del catálogo real obtenido desde Supabase.
+    const sucursalSeleccionada = sucursalesSupabase.find(
+        (branch) => branch.nombre === sucursal
     );
 
-    // Filtramos únicamente los empleados que pertenecen
-    // a la sucursal y departamento seleccionados.
-    const empleadosDisponibles = EMPLOYEE_OPTIONS.filter(
-        (employee) =>
-            employee.branchId === selectedBranchOption?.id &&
-            employee.departmentId === selectedDepartmentOption?.id
+    // Filtramos únicamente los departamentos relacionados con el ID real de la sucursal.
+    // Ya no dependemos de BRANCH_OPTIONS para esta relación.
+    const departamentosDisponibles = sucursalSeleccionada
+        ? departamentosSupabase.filter(
+            (department) => department.sucursal_id === sucursalSeleccionada.id
+        )
+        : [];
+
+    // Buscamos el departamento seleccionado para obtener su ID real de Supabase.
+    const departamentoSeleccionado = departamentosDisponibles.find(
+        (department) => department.nombre === departamento
     );
+
+    // Filtramos los empleados utilizando departamento_id.
+    // La sucursal ya queda determinada mediante la relación del departamento.
+    const empleadosDisponibles = departamentoSeleccionado
+        ? empleadosSupabase.filter(
+            (employee) =>
+                employee.departamento_id === departamentoSeleccionado.id &&
+                employee.activo
+        )
+        : [];
 
     //Creamos una función para generar automáticamente el código correspondiente al próximo equipo.
     const generarCodigoEquipo = () => {
@@ -184,6 +205,11 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
 
             // Generamos automáticamente el código del equipo.
             codigo: generarCodigoEquipo(),
+            
+            // Conservamos evidencia del usuario que realizó originalmente
+// el registro del equipo dentro de TechInventory.
+registradoPorId: currentUser?.id,
+registradoPorNombre: currentUser?.nombreCompleto,
 
             // Guardamos los datos ingresados por el usuario.
             marca: marca,
@@ -423,35 +449,31 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Creamos una opción por cada sucursal registrada. */}
-                        {BRANCH_OPTIONS.map((branch) => (
+
+                        {/* Creamos una opción por cada sucursal cargada desde Supabase y almacenada en Redux. */}
+                        {sucursalesSupabase.map((branch) => (
                             <TouchableOpacity
                                 key={branch.id}
-                                style={[styles.selectionOption, {
-                                    borderBottomColor: colors.border
-                                }]}
+                                style={[styles.selectionOption, { borderBottomColor: colors.border }]}
                                 onPress={() => {
-                                    setSucursal(branch.name);
+                                    // Conservamos el nombre en el formulario para no modificar todavía
+                                    // la estructura actual de Equipment ni la lógica que ya funciona.
+                                    setSucursal(branch.nombre);
 
-                                    // Reiniciamos departamento para evitar conservar uno
-                                    // que pertenezca a una sucursal diferente.
+                                    // Reiniciamos departamento y empleado para evitar conservar
+                                    // información perteneciente a otra sucursal.
                                     setDepartamento("");
                                     setEmpleadoAsignado("");
                                     setShowBranchModal(false);
-
                                 }}
                             >
                                 <Text style={[styles.selectionOptionText, { color: colors.text }]}>
-                                    {branch.name}
+                                    {branch.nombre}
                                 </Text>
 
-                                {/* Mostramos cuál sucursal está seleccionada actualmente. */}
-                                {sucursal === branch.name && (
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={22}
-                                        color={colors.primary}
-                                    />
+                                {/* Indicamos visualmente cuál sucursal está seleccionada actualmente. */}
+                                {sucursal === branch.nombre && (
+                                    <Ionicons name="checkmark" size={22} color={colors.primary} />
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -481,32 +503,28 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Mostramos únicamente los departamentos de la sucursal seleccionada. */}
+                        {/* Mostramos únicamente los departamentos de Supabase pertenecientes a la sucursal seleccionada. */}
                         {departamentosDisponibles.map((department) => (
                             <TouchableOpacity
                                 key={department.id}
-                                style={[styles.selectionOption, {
-                                    borderBottomColor: colors.border
-                                }]}
+                                style={[styles.selectionOption, { borderBottomColor: colors.border }]}
                                 onPress={() => {
-                                    setDepartamento(department.name);
-                                    // Evitamos conservar un empleado perteneciente
-                                    // a otro departamento.
+                                    // Conservamos el nombre dentro del Equipment actual para no romper
+                                    // todavía la estructura que utilizan Equipos, Historial y Mantenimiento.
+                                    setDepartamento(department.nombre);
+
+                                    // Cambiar departamento invalida cualquier empleado seleccionado anteriormente.
                                     setEmpleadoAsignado("");
                                     setShowDepartmentModal(false);
                                 }}
                             >
                                 <Text style={[styles.selectionOptionText, { color: colors.text }]}>
-                                    {department.name}
+                                    {department.nombre}
                                 </Text>
 
                                 {/* Indicamos visualmente el departamento seleccionado. */}
-                                {departamento === department.name && (
-                                    <Ionicons
-                                        name="checkmark"
-                                        size={22}
-                                        color={colors.primary}
-                                    />
+                                {departamento === department.nombre && (
+                                    <Ionicons name="checkmark" size={22} color={colors.primary} />
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -554,21 +572,23 @@ const RegisterEquipmentScreen = ({ navigation }: Props) => {
                             )}
                         </TouchableOpacity>
 
-                        {/* Mostramos solamente los empleados disponibles para la ubicación seleccionada. */}
+                        {/* Mostramos solamente los empleados de Supabase pertenecientes al departamento elegido. */}
                         {empleadosDisponibles.map((employee) => (
                             <TouchableOpacity
                                 key={employee.id}
                                 style={[styles.selectionOption, { borderBottomColor: colors.border }]}
                                 onPress={() => {
-                                    setEmpleadoAsignado(employee.name);
+                                    // Por compatibilidad con Equipment conservamos temporalmente el nombre.
+                                    setEmpleadoAsignado(employee.nombre);
                                     setShowEmployeeModal(false);
                                 }}
                             >
                                 <Text style={[styles.selectionOptionText, { color: colors.text }]}>
-                                    {employee.name}
+                                    {employee.nombre}
                                 </Text>
 
-                                {empleadoAsignado === employee.name && (
+                                {/* Indicamos visualmente cuál empleado está seleccionado. */}
+                                {empleadoAsignado === employee.nombre && (
                                     <Ionicons name="checkmark" size={22} color={colors.primary} />
                                 )}
                             </TouchableOpacity>

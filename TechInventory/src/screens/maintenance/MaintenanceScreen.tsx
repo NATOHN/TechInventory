@@ -1,8 +1,10 @@
 // 1. Importaciones
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+// Permite actualizar la información cada vez que volvemos a Mantenimiento.
+import { useFocusEffect } from '@react-navigation/native';
 // Selector de fecha compatible con Expo.
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -11,6 +13,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAppSelector } from '../../redux/hooks';
 import MaintenanceCard from '../../components/MaintenanceCard';
 import { Maintenance } from '../../redux/maintenanceSlice';
+// Recupera los mantenimientos compartidos desde Supabase.
+import { refrescarMantenimientosDesdeSupabase } from '../../redux/store';
 
 // 2. Definimos los filtros disponibles para la lista de mantenimientos.
 type FilterType = 'todos' | 'en_proceso' | 'finalizado';
@@ -21,6 +25,21 @@ export default function MaintenanceScreen({ navigation }: any) {
 
   // 4. Obtenemos la función t desde LanguageContext para mostrar los textos traducidos.
   const { t, language } = useLanguage();
+
+  // Cada vez que el usuario entra o regresa a Mantenimiento,
+  // actualizamos Redux con la información real de Supabase.
+  useFocusEffect(
+    useCallback(() => {
+      void refrescarMantenimientosDesdeSupabase().catch((error) => {
+        // Si temporalmente no existe conexión conservamos
+        // la última información disponible en Redux.
+        console.log(
+          'No se pudieron actualizar los mantenimientos desde Supabase:',
+          error
+        );
+      });
+    }, [])
+  );
 
   // 5. Estado local que controla que filtro esta activo actualmente.
   const [filter, setFilter] = useState<FilterType>('todos');
@@ -118,7 +137,7 @@ export default function MaintenanceScreen({ navigation }: any) {
 
   // Los contadores también respetan el rango de fechas seleccionado.
   const maintenancesDentroDelRango = maintenances.filter(estaDentroDelRango);
-  
+
   const maintenanceCounts = {
     todos: maintenancesDentroDelRango.length,
 

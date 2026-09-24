@@ -29,6 +29,18 @@ export type Maintenance = {
   codigoMantenimiento?: string;
   codigoEquipo: string;
 
+  // Usuario autenticado que creó originalmente el registro.
+  // Se conserva separado del técnico responsable del trabajo.
+  registradoPorId?: string;
+  registradoPorNombre?: string;
+  registradoPorCorreo?: string;
+
+  // Técnico asignado al mantenimiento.
+  // Guardamos las relaciones reales y también el nombre histórico.
+  tecnicoEmpleadoId?: number;
+  tecnicoUsuarioId?: string;
+
+
 
   tecnico: string;
   tipo: MaintenanceType;
@@ -41,6 +53,8 @@ export type Maintenance = {
   motivoBaja?: string;
 
   firmaBase64?: string;
+  // Ruta permanente de la firma dentro de Supabase Storage.
+  firmaPath?: string;
   firmadoPorNombre?: string;
   fechaFirma?: string;
 
@@ -64,39 +78,10 @@ const defaultChecklist = (): ChecklistItem[] => [
   { label: 'Observaciones generales', checked: false },
 ];
 
-// 10. Creamos el estado inicial del módulo de mantenimiento.
-// Incluimos dos mantenimientos de prueba para poder verificar visualmente el modulo.
+// 10. Redux comienza sin mantenimientos locales.
+// Los registros reales serán recuperados desde Supabase.
 const initialState: MaintenanceState = {
-  maintenances: [
-    {
-      id: 'MT-0001',
-      codigoMantenimiento: 'MT-0001',
-      codigoEquipo: 'EQ-0002',
-      tecnico: 'Carlos López',
-      tipo: 'correctivo',
-      prioridad: 'alta',
-      checklist: defaultChecklist(),
-      repuestos: [{ nombre: 'Fuente de poder 500W', cantidad: 1 }],
-      descripcion: 'Revisión de fuente de poder, equipo no enciende.',
-      status: 'en_proceso',
-      fechaInicio: new Date().toISOString(),
-    },
-    {
-      id: 'MT-0002',
-      codigoMantenimiento: 'MT-0002',
-      codigoEquipo: 'EQ-0001',
-      tecnico: 'Josue Meza',
-      tipo: 'preventivo',
-      prioridad: 'baja',
-      checklist: defaultChecklist().map((item) => ({ ...item, checked: true })),
-      repuestos: [{ nombre: 'Pasta térmica', cantidad: 1 }],
-      descripcion: 'Limpieza interna y cambio de pasta térmica.',
-      estadoFinal: 'Operativo',
-      status: 'finalizado',
-      fechaInicio: new Date(Date.now() - 86400000).toISOString(),
-      fechaFinalizacion: new Date().toISOString(),
-    },
-  ],
+  maintenances: [],
 };
 
 // 11. Creamos el Slice encargado de manejar
@@ -118,9 +103,10 @@ const maintenanceSlice = createSlice({
       state.maintenances.push(action.payload);
     },
 
-    // Recupera los mantenimientos guardados anteriormente en AsyncStorage.
+    // Reemplaza el arreglo completo con los mantenimientos recuperados
+    // desde Supabase o, únicamente como respaldo, desde AsyncStorage.
     cargarMantenimientos: (state, action: PayloadAction<Maintenance[]>) => {
-      // Reemplazamos los mantenimientos iniciales por los recuperados.
+      // Sustituimos la información actual por la fuente que acaba de cargarse.
       state.maintenances = action.payload;
     },
 
@@ -163,6 +149,8 @@ const maintenanceSlice = createSlice({
       action: PayloadAction<{
         id: string;
         firmaBase64: string
+        // Ruta permanente almacenada dentro de Supabase Storage.
+        firmaPath?: string;
         firmadoPorNombre?: string;
       }>
     ) => {
@@ -174,6 +162,8 @@ const maintenanceSlice = createSlice({
         mant.status = 'finalizado';
         mant.fechaFinalizacion = new Date().toISOString();
         mant.firmaBase64 = action.payload.firmaBase64;
+        // Conservamos también la ruta permanente de la firma en Supabase Storage.
+        mant.firmaPath = action.payload.firmaPath;
 
         // Conservamos quién firmó la conformidad en ese momento.
         // Así un cambio futuro de responsable no altera mantenimientos antiguos.

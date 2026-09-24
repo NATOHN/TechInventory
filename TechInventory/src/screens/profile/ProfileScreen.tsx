@@ -1,13 +1,15 @@
 // 1. Importaciones
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+// Alert permitirá mostrar cualquier problema al cerrar la sesión real.
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../../components/CustomButton';
-import { navigationRef } from '../../navigation/NavigationService';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppSelector } from '../../redux/hooks';
+// Utilizamos Supabase Auth para cerrar realmente la sesión del dispositivo.
+import { supabase } from '../../lib/supabase';
 
 export default function ProfileScreen({ navigation }: any) {
   // 2. Obtenemos la paleta de colores actual desde ThemeContext.
@@ -22,12 +24,24 @@ export default function ProfileScreen({ navigation }: any) {
   );
 
   // 5. Texto del rol mostrado bajo el nombre, segun el rol real del usuario actual.
-  const rolTexto = currentUser?.rol === 'administrador' ? 'Administrador' : 'Técnico de mantenimiento';
+  // El rol visible cambia según el idioma seleccionado.
+  const rolTexto =
+    currentUser?.rol === 'administrador'
+      ? t('administratorRole')
+      : t('technicianRole');
 
-  // 6. Cierra la sesion y regresa a la pantalla de Login.
-  const handleLogout = () => {
-    if (navigationRef.isReady()) {
-      navigationRef.reset({ index: 0, routes: [{ name: 'Login' }] });
+  // 6. Cerramos la sesión real de Supabase.
+  // StackNavigator detectará SIGNED_OUT y mostrará Login automáticamente.
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.log('Error al cerrar sesión:', error.message);
+
+      Alert.alert(
+        t('profileLogoutErrorTitle'),
+        t('profileLogoutErrorMessage')
+      );
     }
   };
 
@@ -52,7 +66,7 @@ export default function ProfileScreen({ navigation }: any) {
           onPress={() => navigation.navigate('EditProfileScreen')}
         >
           <Ionicons name="person-outline" size={22} color={colors.primary} />
-          <Text style={[styles.configText, { color: colors.text }]}>Mi Perfil</Text>
+          <Text style={[styles.configText, { color: colors.text }]}> {t('profile')}</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 
@@ -62,7 +76,7 @@ export default function ProfileScreen({ navigation }: any) {
           onPress={() => navigation.navigate('ConfigurationScreen')}
         >
           <Ionicons name="settings-outline" size={22} color={colors.primary} />
-          <Text style={[styles.configText, { color: colors.text }]}>Configuración</Text>
+          <Text style={[styles.configText, { color: colors.text }]}>{t('profileSettings')}</Text>
           <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
 

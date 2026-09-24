@@ -7,6 +7,8 @@ import { useTheme } from '../../context/ThemeContext';
 // Permite mostrar el escáner y sus mensajes en el idioma seleccionado.
 import { useLanguage } from '../../context/LanguageContext';
 import { useAppSelector } from '../../redux/hooks';
+// Permite validar el código contra el inventario más reciente de Supabase.
+import { refrescarEquiposDesdeSupabase } from '../../redux/store';
 import CustomInput from '../../components/CustomInput';
 import CustomButton from '../../components/CustomButton';
 
@@ -38,6 +40,10 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
   // 8. Controla la linterna de la camara.
   const [torchOn, setTorchOn] = useState(false);
 
+  // Evita ejecutar varias consultas al mismo tiempo si el QR
+// se detecta repetidamente o se presiona varias veces Continuar.
+const [validandoCodigo, setValidandoCodigo] = useState(false);
+
   // 9. Solicitamos el permiso de camara automaticamente al entrar a la pantalla.
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -45,9 +51,27 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
     }
   }, [permission]);
 
-  // 10. Busca el codigo recibido (por camara o manual) dentro del inventario.
-  const buscarYContinuar = (codigoRecibido: string) => {
-    const equipo = equipments.find(
+  // 10. Valida siempre el código contra el inventario más reciente disponible.
+// Primero intentamos actualizar Redux desde Supabase y, si no existe conexión,
+// conservamos el inventario que ya estaba cargado localmente.
+const buscarYContinuar = async (codigoRecibido: string) => {
+  if (validandoCodigo) return;
+
+  setValidandoCodigo(true);
+
+  try {
+    let inventarioActual = equipments;
+
+    try {
+      // Recuperamos cambios realizados desde otros teléfonos antes de buscar el código.
+      inventarioActual = await refrescarEquiposDesdeSupabase();
+    } catch (error) {
+      // Si Supabase no responde, todavía podemos intentar utilizar
+      // el último inventario que Redux tenga disponible.
+      console.log('No se pudo refrescar el inventario antes de validar el código:', error);
+    }
+
+    const equipo = inventarioActual.find(
       (e) => e.codigo.toLowerCase() === codigoRecibido.trim().toLowerCase()
     );
 
@@ -55,13 +79,12 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
       Alert.alert(
         t('maintenanceEquipmentNotFoundTitle'),
         t('maintenanceEquipmentNotFoundMessage'),
-        [
-          { text: 'OK', onPress: () => setScanned(false) },
-        ]);
+        [{ text: 'OK', onPress: () => setScanned(false) }]
+      );
       return;
     }
 
-    // 11. Los equipos dados de baja no pueden recibir mantenimiento.
+    // Los equipos dados de baja no pueden recibir mantenimiento.
     if (equipo.status === 'baja') {
       Alert.alert(
         t('maintenanceInactiveEquipmentTitle'),
@@ -74,7 +97,9 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
       return;
     }
 
-    // Verificamos si este equipo ya tiene un mantenimiento actualmente En proceso.
+    // Por ahora esta validación continúa utilizando los mantenimientos
+    // almacenados en Redux. En el siguiente bloque conectaremos también
+    // Mantenimientos Supabase → Redux.
     const mantenimientoEnProceso = maintenances.find(
       (mantenimiento) =>
         mantenimiento.codigoEquipo === equipo.codigo &&
@@ -89,14 +114,11 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
           equipo.codigo
         ),
         [
-          // Permitimos cancelar y continuar escaneando.
           {
             text: t('maintenanceCancelButton'),
             style: 'cancel',
             onPress: () => setScanned(false),
           },
-
-          // También damos acceso directo al mantenimiento que ya está abierto.
           {
             text: t('maintenanceOpenExistingButton'),
             onPress: () =>
@@ -110,21 +132,28 @@ export default function EnterEquipmentCodeScreen({ navigation }: any) {
       return;
     }
 
-    // 12. Navegamos al formulario de nuevo mantenimiento, enviando el codigo del equipo.
-    navigation.navigate('NewMaintenanceScreen', { codigoEquipo: equipo.codigo });
-  };
+    // El equipo ya existe dentro del Redux actualizado,
+    // por lo que NewMaintenanceScreen podrá encontrarlo normalmente.
+    navigation.navigate('NewMaintenanceScreen', {
+      codigoEquipo: equipo.codigo,
+    });
+  } finally {
+    setValidandoCodigo(false);
+  }
+};
 
   // 13. Callback que recibe expo-camera cada vez que detecta un codigo QR.
   const handleBarcodeScanned = (result: BarcodeScanningResult) => {
-    if (scanned) return;
+     if (scanned || validandoCodigo) return;
     setScanned(true);
-    buscarYContinuar(result.data);
+    void buscarYContinuar(result.data);
   };
 
   // 14. Envia el codigo escrito a mano hacia la misma validacion que usa la camara.
-  const handleContinuarManual = () => {
-    buscarYContinuar(codigo);
-  };
+  // El ingreso manual utiliza exactamente la misma validación remota que el QR.
+const handleContinuarManual = () => {
+  void buscarYContinuar(codigo);
+};
 
   return (
     <View style={styles.container}>

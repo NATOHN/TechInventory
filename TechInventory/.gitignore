@@ -39,3 +39,14 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Variables de entorno locales
+.env
+.env.local
+.env.*.local
+
+# Archivos temporales generados por Supabase CLI
+supabase/.temp/
+
+# Estado local generado por Expo
+.expo/
