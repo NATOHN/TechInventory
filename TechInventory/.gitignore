@@ -47,3 +47,6 @@ yarn-error.*
 
 # Archivos temporales generados por Supabase CLI
 supabase/.temp/
+
+# Estado local generado por Expo
+.expo/
